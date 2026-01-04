@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "landmarkers"
+version = "0.1.0"
+dependencies = [
+    "mediapipe",
+    "numpy",
+    "opencv-python",
+]
+
+[tool.setuptools]
+package-dir = {"landmarkers" = "src"}
+packages = ["landmarkers", "landmarkers.hands"]

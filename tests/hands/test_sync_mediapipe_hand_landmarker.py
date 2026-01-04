@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 from unittest.mock import MagicMock, patch
 
-from landmarkers.hands.sync_mediapipe_hand_landmarker import (
+from landmarkers.hands import (
     SyncMediapipeHandLandmarker,
     MediapipeHandLandmarkerRunningMode,
 )
-from landmarkers.hands.hands_results import HandLandmarkerResult
+from landmarkers.hands import HandLandmarkerResult
 
 
 # -------------------------

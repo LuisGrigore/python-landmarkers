@@ -3,7 +3,6 @@ import pytest
 
 from landmarkers.hands import HandLandmarkerResult
 
-
 # ============================================================
 # Helpers / Fixtures
 # ============================================================
