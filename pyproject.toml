@@ -11,6 +11,12 @@ dependencies = [
     "opencv-python",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "build",
+]
+
 [tool.setuptools]
 package-dir = {"landmarkers" = "src"}
 packages = ["landmarkers", "landmarkers.hands"]

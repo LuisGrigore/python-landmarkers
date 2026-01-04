@@ -21,7 +21,7 @@ Currently, it supports **hand landmarks using MediaPipe**, but it could support 
 You can install directly from GitHub using pip:
 
 ```bash
-pip install git+aaaaaaaaaaaaaaaaaaaa.git
+pip install git+https://github.com/LuisGrigore/python-landmarkers.git
 ```
 
 ### Requirements
