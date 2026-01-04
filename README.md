@@ -5,7 +5,7 @@ Currently, it supports **hand landmarks using MediaPipe**, but it could support 
 
 ---
 
-## ⚡ Features
+## Features
 
 - Hand detection in **single images** or **video frame-by-frame** (synchronous mode).  
 - **Asynchronous streaming** mode with user-provided callbacks (LIVE_STREAM).  
@@ -15,7 +15,7 @@ Currently, it supports **hand landmarks using MediaPipe**, but it could support 
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### From GitHub
 You can install directly from GitHub using pip:
@@ -32,7 +32,7 @@ pip install git+https://github.com/LuisGrigore/python-landmarkers.git
 
 ---
 
-## 🖼 Usage – Synchronous Mode
+## Usage – Synchronous Mode
 
 ```python
 import cv2
@@ -74,7 +74,7 @@ while True:
 
 ---
 
-## 🎥 Usage – Asynchronous Stream
+## Usage – Asynchronous Stream
 
 ### Raw Callback
 ```python
@@ -118,7 +118,7 @@ detector = WrappedStreamMediapipeLandmarker(
 
 ---
 
-## 🔧 Main Classes and Methods
+## Main Classes and Methods
 
 | Class | Method | Description |
 |-------|--------|------------|
@@ -126,15 +126,13 @@ detector = WrappedStreamMediapipeLandmarker(
 |  | `detect_raw(frame, timestamp_ms=None)` | Returns the raw MediaPipe result (`HandLandmarkerResultProtocol`) without wrapping. |
 |  | `close()` | Releases resources. |
 | `RawStreamMediapipeLandmarker` | `send(frame, timestamp_ms)` | Sends a frame for asynchronous processing. |
-|  | `_internal_callback(raw_result, mp_image, timestamp_ms)` | Internal callback; passes the raw result to the user callback. |
 |  | `close()` | Releases resources. |
 | `WrappedStreamMediapipeLandmarker` | `send(frame, timestamp_ms)` | Sends a frame for asynchronous processing. |
-|  | `_internal_callback(raw_result, mp_image, timestamp_ms)` | Wraps the raw result in `HandLandmarkerResult` before calling user callback. |
 |  | `close()` | Releases resources. |
 
 ---
 
-## 🛠 Best Practices
+## Best Practices
 
 - Always **close the detector** after use:
 
