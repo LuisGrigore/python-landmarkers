@@ -55,6 +55,22 @@ def cached_method(method):
 
 
 class HandLandmarkerResult:
+    """
+    Hand Landmarker Result Wrapper.
+
+    Wraps the raw MediaPipe hand landmarker result with helper methods for easy access to landmarks, handedness, and drawing.
+
+    Args:
+        data (HandLandmarkerResultProtocol): Raw MediaPipe result data.
+        num_landmarks (int): Expected number of landmarks per hand.
+        num_world_landmarks (int): Expected number of world landmarks per hand.
+        time_stamp_ms (Optional[int]): Timestamp in milliseconds.
+
+    Example:
+        >>> result = detector.detect(frame)
+        >>> print("Hands detected:", result.hands_count)
+        >>> image_with_landmarks = result.draw(frame)
+    """
 
     def __init__(
         self,
@@ -71,17 +87,30 @@ class HandLandmarkerResult:
 
     @property
     def data(self) -> HandLandmarkerResultProtocol:
+        """Raw MediaPipe result data."""
         return deepcopy(self._data)
 
     @property
     def hands_count(self) -> int:
+        """Number of detected hands."""
         return len(self._data.hand_landmarks)
     
     @property
     def time_stamp_ms(self) -> Optional[int]:
+        """Timestamp of the result in milliseconds."""
         return self._time_stamp_ms
 
     def draw(self, image: ImageArray, hand_index: Optional[int] = None) -> ImageArray:
+        """
+        Draw hand landmarks on the image.
+
+        Args:
+            image (ImageArray): Input image as numpy array.
+            hand_index (Optional[int]): Index of the hand to draw. If None, draws all hands.
+
+        Returns:
+            ImageArray: Image with landmarks drawn.
+        """
         new_image = image.copy()
         hands = self._select_hands(self._data.hand_landmarks, hand_index)
         h, w, _ = new_image.shape
@@ -111,6 +140,15 @@ class HandLandmarkerResult:
 
     @cached_method
     def landmarks_array(self, hand_index: Optional[int] = None) -> np.ndarray:
+        """
+        Get hand landmarks as a numpy array.
+
+        Args:
+            hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+
+        Returns:
+            np.ndarray: Array of shape (num_hands, num_landmarks, 3) with (x, y, z) coordinates.
+        """
         hands = self._select_hands(self._data.hand_landmarks, hand_index)
         if not hands:
             return np.zeros((0, self._num_landmarks, 3), dtype=np.float32)
@@ -120,6 +158,15 @@ class HandLandmarkerResult:
 
     @cached_method
     def world_landmarks_array(self, hand_index: Optional[int] = None) -> np.ndarray:
+        """
+        Get world hand landmarks as a numpy array.
+
+        Args:
+            hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+
+        Returns:
+            np.ndarray: Array of shape (num_hands, num_world_landmarks, 3) with (x, y, z) coordinates.
+        """
         hands = self._select_hands(self._data.hand_world_landmarks, hand_index)
         if not hands:
             return np.zeros((0, self._num_world_landmarks, 3), dtype=np.float32)
@@ -132,6 +179,15 @@ class HandLandmarkerResult:
     def landmarks_array_relative_to_wrist(
         self, hand_index: Optional[int] = None
     ) -> np.ndarray:
+        """
+        Get hand landmarks relative to the wrist as a numpy array.
+
+        Args:
+            hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+
+        Returns:
+            np.ndarray: Array of shape (num_hands, num_landmarks, 3) with relative (x, y, z) coordinates.
+        """
         landmarks = self.landmarks_array(hand_index)
         if landmarks.shape[0] == 0:
             return landmarks
@@ -139,6 +195,15 @@ class HandLandmarkerResult:
 
     @cached_method
     def handedness(self, hand_index: Optional[int] = None) -> np.ndarray:
+        """
+        Get handedness information as a numpy array.
+
+        Args:
+            hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+
+        Returns:
+            np.ndarray: Array of shape (num_hands, 3) with (index, score, label) where label is 0 for Left, 1 for Right.
+        """
         if not self._data.handedness:
             return np.zeros((0, 3), dtype=np.float32)
 

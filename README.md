@@ -12,7 +12,7 @@ Currently, it supports **hand landmarks using MediaPipe**, but it could support 
 - Results are wrapped in `HandLandmarkerResult` objects with helper methods.  
 - If you want to work **directly with the raw data** returned by the model, without using the `HandLandmarkerResult` helpers, you can use the **raw result protocol** (`HandLandmarkerResultProtocol`).  
   This avoids unnecessary overhead if you don’t need drawing or helper methods.
-
+- Compatibility with pythons **context API**.
 ---
 
 ## Installation
@@ -129,6 +129,14 @@ detector = WrappedStreamMediapipeLandmarker(
 |  | `close()` | Releases resources. |
 | `WrappedStreamMediapipeLandmarker` | `send(frame, timestamp_ms)` | Sends a frame for asynchronous processing. |
 |  | `close()` | Releases resources. |
+| `HandLandmarkerResult` | `hands_count` | Number of detected hands. |
+|  | `time_stamp_ms` | Timestamp of the result in milliseconds. |
+|  | `draw(image, hand_index=None)` | Draws hand landmarks on the provided image. |
+|  | `landmarks_array(hand_index=None)` | Returns landmarks as a numpy array. |
+|  | `world_landmarks_array(hand_index=None)` | Returns world landmarks as a numpy array. |
+|  | `landmarks_array_relative_to_wrist(hand_index=None)` | Returns landmarks relative to the wrist. |
+|  | `handedness(hand_index=None)` | Returns handedness information as a numpy array. |
+|  | `data` | Raw MediaPipe result data. |
 
 ---
 
