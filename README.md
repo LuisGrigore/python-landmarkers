@@ -1,9 +1,9 @@
+
 # Landmarkers – Landmark Detection Wrapper
 
 **Landmarkers** is a Python library that provides a simple interface for landmark detection models.  
 Currently, it supports **hand landmarks using MediaPipe**, but it could support other landmarks in the future.
 
----
 
 ## Features
 
@@ -13,11 +13,10 @@ Currently, it supports **hand landmarks using MediaPipe**, but it could support 
 - If you want to work **directly with the raw data** returned by the model, without using the `HandLandmarkerResult` helpers, you can use the **raw result protocol** (`HandLandmarkerResultProtocol`).  
   This avoids unnecessary overhead if you don’t need drawing or helper methods.
 - Compatibility with pythons **context API**.
----
+
 
 ## Installation
 
-### From GitHub
 You can install directly from GitHub using pip:
 
 ```bash
@@ -25,100 +24,89 @@ pip install git+https://github.com/LuisGrigore/python-landmarkers.git
 ```
 
 ### Requirements
-- Python ≥ 3.10  
-- mediapipe  
-- numpy
-- opencv-python
 
----
+- Python ≥ 3.10
+## Dependencies
+
+### Running
+
+| Name | Version used |
+|------|--------------|
+| mediapipe | 0.10.31 |
+|numpy | 2.2.6 |
+|opencv-python | 4.12.0.88|
+
+
+### Development
+
+| Name | Version used |
+|------|--------------|
+| build | 1.3.0 |
+| pytest | 9.0.2 |
 
 ## Usage – Synchronous Mode
 
+### Image
+
 ```python
+from landmarkers.hands import SyncMediapipeHandLandmarker, MediapipeHandLandmarkerRunningMode as RunningMode
 import cv2
-from landmarkers.hands.sync_mediapipe_hand_landmarker import SyncMediapipeHandLandmarker, MediapipeHandLandmarkerRunningMode
 
-# Initialize detector
-detector = SyncMediapipeHandLandmarker(
-    model_path="hand_landmarker.task",
-    running_mode=MediapipeHandLandmarkerRunningMode.IMAGE
-)
+image = cv2.imread("image.jpg")
 
-# Read an image
-frame = cv2.imread("hand.jpg")[:, :, ::-1]  # BGR -> RGB
+with SyncMediapipeHandLandmarker(model_path='hand_landmarker.task',
+                                 running_mode=RunningMode.IMAGE) as hand_landmarker:
+		result = hand_landmarker.detect(image)
+		image_with_landmarks = result.draw(image)
+        cv2.imshow("Example", imagen)
 
-# Detect hands
-result = detector.detect(frame)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
-# Draw landmarks on the image
-image_with_landmarks = result.draw(frame)
 ```
 
-### Video Example
+### Video
+
 ```python
-cap = cv2.VideoCapture("video.mp4")
-detector = SyncMediapipeHandLandmarker(
-    model_path="hand_landmarker.task",
-    running_mode=MediapipeHandLandmarkerRunningMode.VIDEO
-)
+from landmarkers.hands import SyncMediapipeHandLandmarker, HandLandmarkerResult, MediapipeHandLandmarkerRunningMode as RunningMode
+import time
 
-timestamp = 0
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-    frame_rgb = frame[:, :, ::-1]
-    result = detector.detect(frame_rgb, timestamp_ms=timestamp)
-    timestamp += 33  # approx. 30 FPS
-```
+def timestamper_ms(current_time: float):
+	last_timestamp = int(current_time * 1000)
+	def get_timestamp_ms():
+		nonlocal last_timestamp
+		timestamp = int(time.time() * 1000)
+		if timestamp <= last_timestamp:
+			timestamp = last_timestamp + 1
+		last_timestamp = timestamp
+		return timestamp
+	return get_timestamp_ms
 
----
-
-## Usage – Asynchronous Stream
-
-### Raw Callback
-```python
-from landmarkers.hands.async_mediapipe_hand_landmarker import RawStreamMediapipeLandmarker
-
-def raw_callback(result, image, timestamp_ms):
-    # result is a HandLandmarkerResultProtocol object (raw model data)
-    print("Detected hands:", len(result.hands))
-
-detector = RawStreamMediapipeLandmarker(
-    model_path="hand_landmarker.task",
-    result_callback=raw_callback
-)
-
-# Send frames from camera
-import cv2
 cap = cv2.VideoCapture(0)
-timestamp = 0
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-    detector.send(frame[:, :, ::-1], timestamp)
-    timestamp += 33
+
+
+with SyncMediapipeHandLandmarker(model_path='hand_landmarker.task',
+                                 running_mode=RunningMode.VIDEO) as hand_landmarker:
+	get_timestamp_ms = timestamper_ms(time.time())
+	while cap.isOpened():
+		ret, frame = cap.read()
+		if not ret:
+
+		result = hand_landmarker.detect(frame,get_timestamp_ms())
+		frame = result.draw(frame)
+
+		cv2.imshow('Example', frame)
+		if cv2.waitKey(10) & 0xFF == ord('q'):
+			break
+
+cap.release()
+cv2.destroyAllWindows()
+
+
 ```
+## API Reference
 
-### Wrapped Callback
-```python
-from landmarkers.hands.async_mediapipe_hand_landmarker import WrappedStreamMediapipeLandmarker
-
-def wrapped_callback(result, image, timestamp_ms):
-    print("Number of hands:", len(result.hands))
-    # Draw landmarks on the image
-    image_with_landmarks = result.draw(image)
-
-detector = WrappedStreamMediapipeLandmarker(
-    model_path="hand_landmarker.task",
-    result_callback=wrapped_callback
-)
-```
-
----
-
-## Main Classes and Methods
+### Main Classes and Methods
 
 | Class | Method | Description |
 |-------|--------|------------|
@@ -138,7 +126,6 @@ detector = WrappedStreamMediapipeLandmarker(
 |  | `handedness(hand_index=None)` | Returns handedness information as a numpy array. |
 |  | `data` | Raw MediaPipe result data. |
 
----
 
 ## Best Practices
 
