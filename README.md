@@ -101,10 +101,87 @@ with SyncMediapipeHandLandmarker(model_path='hand_landmarker.task',
 
 cap.release()
 cv2.destroyAllWindows()
-
-
 ```
-## API Reference
+
+## Usage – Asynchronous Mode
+
+### Raw Stream
+
+```python
+from landmarkers.hands import RawStreamMediapipeLandmarker
+import cv2
+import time
+
+def timestamper_ms(current_time: float):
+	last_timestamp = int(current_time * 1000)
+	def get_timestamp_ms():
+		nonlocal last_timestamp
+		timestamp = int(time.time() * 1000)
+		if timestamp <= last_timestamp:
+			timestamp = last_timestamp + 1
+		last_timestamp = timestamp
+		return timestamp
+	return get_timestamp_ms
+
+def my_callback(raw_result, image, timestamp_ms):
+	print(f"Detected {len(raw_result.hand_landmarks)} hands at {timestamp_ms}ms")
+
+cap = cv2.VideoCapture(0)
+
+with RawStreamMediapipeLandmarker(model_path='hand_landmarker.task', callback=my_callback) as detector:
+	get_timestamp_ms = timestamper_ms(time.time())
+	while cap.isOpened():
+		ret, frame = cap.read()
+		if not ret:
+			break
+		detector.send(frame, get_timestamp_ms())
+		if cv2.waitKey(10) & 0xFF == ord('q'):
+			break
+
+cap.release()
+cv2.destroyAllWindows()
+```
+
+### Wrapped Stream
+
+```python
+from landmarkers.hands import WrappedStreamMediapipeLandmarker
+import cv2
+import time
+
+def timestamper_ms(current_time: float):
+	last_timestamp = int(current_time * 1000)
+	def get_timestamp_ms():
+		nonlocal last_timestamp
+		timestamp = int(time.time() * 1000)
+		if timestamp <= last_timestamp:
+			timestamp = last_timestamp + 1
+		last_timestamp = timestamp
+		return timestamp
+	return get_timestamp_ms
+
+def my_callback(result, image, timestamp_ms):
+	print(f"Detected {result.hands_count} hands at {timestamp_ms}ms")
+	image_with_landmarks = result.draw(image)
+	cv2.imshow('Async Example', image_with_landmarks)
+
+cap = cv2.VideoCapture(0)
+
+with WrappedStreamMediapipeHandLandmarker(model_path='hand_landmarker.task', callback=my_callback) as detector:
+	get_timestamp_ms = timestamper_ms(time.time())
+	while cap.isOpened():
+		ret, frame = cap.read()
+		if not ret:
+			break
+		detector.send(frame, get_timestamp_ms())
+		if cv2.waitKey(10) & 0xFF == ord('q'):
+			break
+
+cap.release()
+cv2.destroyAllWindows()
+```
+
+## API
 
 ### Main Classes and Methods
 
