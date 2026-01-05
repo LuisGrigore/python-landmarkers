@@ -1,6 +1,6 @@
 from copy import deepcopy
 from functools import cache
-from typing import Literal, Optional, Protocol, Sequence, runtime_checkable
+from typing import Literal, Optional, Protocol, Sequence, Tuple, runtime_checkable
 
 import cv2
 import numpy as np
@@ -61,15 +61,15 @@ class HandLandmarkerResult:
     Wraps the raw MediaPipe hand landmarker result with helper methods for easy access to landmarks, handedness, and drawing.
 
     Args:
-        data (HandLandmarkerResultProtocol): Raw MediaPipe result data.
-        num_landmarks (int): Expected number of landmarks per hand.
-        num_world_landmarks (int): Expected number of world landmarks per hand.
-        time_stamp_ms (Optional[int]): Timestamp in milliseconds.
+            data (HandLandmarkerResultProtocol): Raw MediaPipe result data.
+            num_landmarks (int): Expected number of landmarks per hand.
+            num_world_landmarks (int): Expected number of world landmarks per hand.
+            time_stamp_ms (Optional[int]): Timestamp in milliseconds.
 
     Example:
-        >>> result = detector.detect(frame)
-        >>> print("Hands detected:", result.hands_count)
-        >>> image_with_landmarks = result.draw(frame)
+            >>> result = detector.detect(frame)
+            >>> print("Hands detected:", result.hands_count)
+            >>> image_with_landmarks = result.draw(frame)
     """
 
     def __init__(
@@ -77,7 +77,7 @@ class HandLandmarkerResult:
         data: HandLandmarkerResultProtocol,
         num_landmarks: int,
         num_world_landmarks: int,
-        time_stamp_ms: Optional[int] = None
+        time_stamp_ms: Optional[int] = None,
     ) -> None:
 
         self._data: HandLandmarkerResultProtocol = deepcopy(data)
@@ -94,7 +94,7 @@ class HandLandmarkerResult:
     def hands_count(self) -> int:
         """Number of detected hands."""
         return len(self._data.hand_landmarks)
-    
+
     @property
     def time_stamp_ms(self) -> Optional[int]:
         """Timestamp of the result in milliseconds."""
@@ -105,11 +105,11 @@ class HandLandmarkerResult:
         Draw hand landmarks on the image.
 
         Args:
-            image (ImageArray): Input image as numpy array.
-            hand_index (Optional[int]): Index of the hand to draw. If None, draws all hands.
+                image (ImageArray): Input image as numpy array.
+                hand_index (Optional[int]): Index of the hand to draw. If None, draws all hands.
 
         Returns:
-            ImageArray: Image with landmarks drawn.
+                ImageArray: Image with landmarks drawn.
         """
         new_image = image.copy()
         hands = self._select_hands(self._data.hand_landmarks, hand_index)
@@ -138,60 +138,85 @@ class HandLandmarkerResult:
             return []
         return list(hands_source)
 
+    def _landmarks_array(
+        self,
+        hands_landmarks: Sequence[LandmarkList],
+        fill_value: Optional[float] = None,
+    ) -> Tuple[np.ndarray, bool]:
+        if not hands_landmarks:
+            if fill_value is None:
+                return (np.zeros((0, self._num_landmarks, 3), dtype=np.float32), False)
+            return (
+                np.full((1, self._num_landmarks, 3), fill_value, dtype=np.float32),
+                False,
+            )
+        return (
+            np.stack(
+                [
+                    self._pad_or_truncate(hand, self._num_landmarks)
+                    for hand in hands_landmarks
+                ],
+                axis=0,
+            ),
+            True,
+        )
+
     @cached_method
-    def landmarks_array(self, hand_index: Optional[int] = None) -> np.ndarray:
+    def landmarks_array(
+        self, hand_index: Optional[int] = None, fill_value: Optional[float] = None
+    ) -> np.ndarray:
         """
         Get hand landmarks as a numpy array.
 
         Args:
-            hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+                hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+                fill_value (Optional[float]): If no hands are detected and fill_value is provided, returns an array of shape (1, num_landmarks, 3) filled with this value. If None, returns an empty array of shape (0, num_landmarks, 3).
 
         Returns:
-            np.ndarray: Array of shape (num_hands, num_landmarks, 3) with (x, y, z) coordinates.
+                np.ndarray: Array of shape (num_hands, num_landmarks, 3) with (x, y, z) coordinates, or (1, num_landmarks, 3) if fill_value is used and no hands detected.
         """
-        hands = self._select_hands(self._data.hand_landmarks, hand_index)
-        if not hands:
-            return np.zeros((0, self._num_landmarks, 3), dtype=np.float32)
-        return np.stack(
-            [self._pad_or_truncate(hand, self._num_landmarks) for hand in hands], axis=0
-        )
+        return self._landmarks_array(
+            self._select_hands(self._data.hand_landmarks, hand_index), fill_value
+        )[0]
 
     @cached_method
-    def world_landmarks_array(self, hand_index: Optional[int] = None) -> np.ndarray:
+    def world_landmarks_array(
+        self, hand_index: Optional[int] = None, fill_value: Optional[float] = None
+    ) -> np.ndarray:
         """
         Get world hand landmarks as a numpy array.
 
         Args:
-            hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+                hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+                fill_value (Optional[float]): If no hands are detected and fill_value is provided, returns an array of shape (1, num_world_landmarks, 3) filled with this value. If None, returns an empty array of shape (0, num_world_landmarks, 3).
 
         Returns:
-            np.ndarray: Array of shape (num_hands, num_world_landmarks, 3) with (x, y, z) coordinates.
+                np.ndarray: Array of shape (num_hands, num_world_landmarks, 3) with (x, y, z) coordinates, or (1, num_world_landmarks, 3) if fill_value is used and no hands detected.
         """
-        hands = self._select_hands(self._data.hand_world_landmarks, hand_index)
-        if not hands:
-            return np.zeros((0, self._num_world_landmarks, 3), dtype=np.float32)
-        return np.stack(
-            [self._pad_or_truncate(hand, self._num_world_landmarks) for hand in hands],
-            axis=0,
-        )
+        return self._landmarks_array(
+            self._select_hands(self._data.hand_world_landmarks, hand_index), fill_value
+        )[0]
 
     @cached_method
     def landmarks_array_relative_to_wrist(
-        self, hand_index: Optional[int] = None
+        self, hand_index: Optional[int] = None, fill_value: Optional[float] = None
     ) -> np.ndarray:
         """
         Get hand landmarks relative to the wrist as a numpy array.
 
         Args:
-            hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+                hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+                fill_value (Optional[float]): If no hands are detected and fill_value is provided, returns an array of shape (1, num_landmarks, 3) filled with this value. If None, returns an empty array of shape (0, num_landmarks, 3).
 
         Returns:
-            np.ndarray: Array of shape (num_hands, num_landmarks, 3) with relative (x, y, z) coordinates.
+                np.ndarray: Array of shape (num_hands, num_landmarks, 3) with relative (x, y, z) coordinates, or (1, num_landmarks, 3) if fill_value is used and no hands detected.
         """
-        landmarks = self.landmarks_array(hand_index)
-        if landmarks.shape[0] == 0:
-            return landmarks
-        return landmarks - landmarks[:, 0:1, :]
+
+        (landmarks, hands_present) = self._landmarks_array(
+            self._select_hands(self._data.hand_landmarks, hand_index), fill_value
+        )
+        
+        return landmarks - landmarks[:, 0:1, :] if hands_present else landmarks
 
     @cached_method
     def handedness(self, hand_index: Optional[int] = None) -> np.ndarray:
@@ -199,10 +224,10 @@ class HandLandmarkerResult:
         Get handedness information as a numpy array.
 
         Args:
-            hand_index (Optional[int]): Index of the hand. If None, returns all hands.
+                hand_index (Optional[int]): Index of the hand. If None, returns all hands.
 
         Returns:
-            np.ndarray: Array of shape (num_hands, 3) with (index, score, label) where label is 0 for Left, 1 for Right.
+                np.ndarray: Array of shape (num_hands, 3) with (index, score, label) where label is 0 for Left, 1 for Right.
         """
         if not self._data.handedness:
             return np.zeros((0, 3), dtype=np.float32)

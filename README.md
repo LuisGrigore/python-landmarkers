@@ -120,9 +120,9 @@ cv2.destroyAllWindows()
 | `HandLandmarkerResult` | `hands_count` | Number of detected hands. |
 |  | `time_stamp_ms` | Timestamp of the result in milliseconds. |
 |  | `draw(image, hand_index=None)` | Draws hand landmarks on the provided image. |
-|  | `landmarks_array(hand_index=None)` | Returns landmarks as a numpy array. |
-|  | `world_landmarks_array(hand_index=None)` | Returns world landmarks as a numpy array. |
-|  | `landmarks_array_relative_to_wrist(hand_index=None)` | Returns landmarks relative to the wrist. |
+|  | `landmarks_array(hand_index=None, fill_value=None)` | Returns landmarks as a numpy array. |
+|  | `world_landmarks_array(hand_index=None, fill_value=None)` | Returns world landmarks as a numpy array. |
+|  | `landmarks_array_relative_to_wrist(hand_index=None, fill_value=None)` | Returns landmarks relative to the wrist. |
 |  | `handedness(hand_index=None)` | Returns handedness information as a numpy array. |
 |  | `data` | Raw MediaPipe result data. |
 
