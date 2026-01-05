@@ -9,9 +9,10 @@ from landmarkers.hands import (
 from landmarkers.hands import HandLandmarkerResult
 
 
-# -------------------------
+# ============================================================
 # Fixtures
-# -------------------------
+# ============================================================
+
 
 @pytest.fixture
 def dummy_frame():
@@ -26,98 +27,96 @@ def mock_landmarker():
 	return landmarker
 
 
-# -------------------------
+# ============================================================
 # Tests
-# -------------------------
+# ============================================================
 
-def test_init_creates_landmarker(mock_landmarker):
-	with patch(
-		"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
-		return_value=mock_landmarker,
+
+class TestSyncMediapipeHandLandmarker:
+	def test_init_creates_landmarker(self, mock_landmarker):
+		with patch(
+			"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
+			return_value=mock_landmarker,
+		):
+			detector = SyncMediapipeHandLandmarker("fake_model.task")
+
+			assert detector._landmarker is mock_landmarker
+
+	def test_detect_raw_image_mode(self, dummy_frame, mock_landmarker):
+		with patch(
+			"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
+			return_value=mock_landmarker,
+		):
+			detector = SyncMediapipeHandLandmarker(
+				model_path="fake_model.task",
+				running_mode=MediapipeHandLandmarkerRunningMode.IMAGE,
+			)
+
+			result = detector.detect_raw(dummy_frame)
+
+			mock_landmarker.detect.assert_called_once()
+			assert result == "IMAGE_RESULT"
+
+	def test_detect_raw_video_mode_with_timestamp(self, dummy_frame, mock_landmarker):
+		with patch(
+			"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
+			return_value=mock_landmarker,
+		):
+			detector = SyncMediapipeHandLandmarker(
+				model_path="fake_model.task",
+				running_mode=MediapipeHandLandmarkerRunningMode.VIDEO,
+			)
+
+			result = detector.detect_raw(dummy_frame, timestamp_ms=123)
+
+			mock_landmarker.detect_for_video.assert_called_once()
+			assert result == "VIDEO_RESULT"
+
+	def test_detect_raw_video_mode_without_timestamp_raises(
+		self, dummy_frame, mock_landmarker
 	):
-		detector = SyncMediapipeHandLandmarker("fake_model.task")
+		with patch(
+			"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
+			return_value=mock_landmarker,
+		):
+			detector = SyncMediapipeHandLandmarker(
+				model_path="fake_model.task",
+				running_mode=MediapipeHandLandmarkerRunningMode.VIDEO,
+			)
 
-		assert detector._landmarker is mock_landmarker
+			with pytest.raises(ValueError, match="timestamp_ms required"):
+				detector.detect_raw(dummy_frame)
 
+	def test_detect_raw_after_close_raises(self, dummy_frame, mock_landmarker):
+		with patch(
+			"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
+			return_value=mock_landmarker,
+		):
+			detector = SyncMediapipeHandLandmarker("fake_model.task")
+			detector.close()
 
-def test_detect_raw_image_mode(dummy_frame, mock_landmarker):
-	with patch(
-		"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
-		return_value=mock_landmarker,
-	):
-		detector = SyncMediapipeHandLandmarker(
-			model_path="fake_model.task",
-			running_mode=MediapipeHandLandmarkerRunningMode.IMAGE,
-		)
+			with pytest.raises(RuntimeError, match="Landmarker is closed"):
+				detector.detect_raw(dummy_frame)
 
-		result = detector.detect_raw(dummy_frame)
+	def test_detect_returns_handlandmarkerresult(self, dummy_frame, mock_landmarker):
+		with patch(
+			"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
+			return_value=mock_landmarker,
+		):
+			detector = SyncMediapipeHandLandmarker("fake_model.task")
 
-		mock_landmarker.detect.assert_called_once()
-		assert result == "IMAGE_RESULT"
+			result = detector.detect(dummy_frame)
 
+			assert isinstance(result, HandLandmarkerResult)
 
-def test_detect_raw_video_mode_with_timestamp(dummy_frame, mock_landmarker):
-	with patch(
-		"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
-		return_value=mock_landmarker,
-	):
-		detector = SyncMediapipeHandLandmarker(
-			model_path="fake_model.task",
-			running_mode=MediapipeHandLandmarkerRunningMode.VIDEO,
-		)
+	def test_close_calls_landmarker_close(self, mock_landmarker):
+		with patch(
+			"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
+			return_value=mock_landmarker,
+		):
+			detector = SyncMediapipeHandLandmarker("fake_model.task")
 
-		result = detector.detect_raw(dummy_frame, timestamp_ms=123)
+			detector.close()
 
-		mock_landmarker.detect_for_video.assert_called_once()
-		assert result == "VIDEO_RESULT"
-
-
-def test_detect_raw_video_mode_without_timestamp_raises(dummy_frame, mock_landmarker):
-	with patch(
-		"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
-		return_value=mock_landmarker,
-	):
-		detector = SyncMediapipeHandLandmarker(
-			model_path="fake_model.task",
-			running_mode=MediapipeHandLandmarkerRunningMode.VIDEO,
-		)
-
-		with pytest.raises(ValueError, match="timestamp_ms required"):
-			detector.detect_raw(dummy_frame)
-
-
-def test_detect_raw_after_close_raises(dummy_frame, mock_landmarker):
-	with patch(
-		"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
-		return_value=mock_landmarker,
-	):
-		detector = SyncMediapipeHandLandmarker("fake_model.task")
-		detector.close()
-
-		with pytest.raises(RuntimeError, match="Landmarker is closed"):
-			detector.detect_raw(dummy_frame)
-
-
-def test_detect_returns_handlandmarkerresult(dummy_frame, mock_landmarker):
-	with patch(
-		"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
-		return_value=mock_landmarker,
-	):
-		detector = SyncMediapipeHandLandmarker("fake_model.task")
-
-		result = detector.detect(dummy_frame)
-
-		assert isinstance(result, HandLandmarkerResult)
-
-
-def test_close_calls_landmarker_close(mock_landmarker):
-	with patch(
-		"landmarkers.hands.sync_mediapipe_hand_landmarker.HandLandmarker.create_from_options",
-		return_value=mock_landmarker,
-	):
-		detector = SyncMediapipeHandLandmarker("fake_model.task")
-
-		detector.close()
-
-		mock_landmarker.close.assert_called_once()
-		assert detector._landmarker is None
+			mock_landmarker.close.assert_called_once()
+			assert detector._landmarker is None
