@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from src.inference import Inference
+from .inference import Inference
 
 
 class BaseLandmarker(AbstractContextManager, ABC):

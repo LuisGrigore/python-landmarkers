@@ -1,11 +1,11 @@
 from typing import Callable, List, Optional
 import numpy as np
-from src.mp.hands.hands_results import HandLandmarkerResultProtocol
-from src.inference import Inference
-from src.landmarkers import ImageLandmarker, LiveStreamLandmarker, VideoLandmarker
+from ...landmarkers import ImageLandmarker, LiveStreamLandmarker, VideoLandmarker
 import mediapipe as mp
-from src.mp.hands.hands_results import landmark_list_to_ndarray
-from src.mp.hands.metadata import MediapipeHandsMetadata
+
+from ...inference import Inference
+from .hands_results import landmark_list_to_ndarray, HandLandmarkerResultProtocol
+from .metadata import MediapipeHandsMetadata
 
 
 BaseOptions = mp.tasks.BaseOptions
@@ -61,7 +61,9 @@ class MPImageLandmarker(ImageLandmarker):
 		)
 		self._landmarker = HandLandmarker.create_from_options(options)
 
-	def infer(self, image: np.ndarray) -> Optional[List[Inference[MediapipeHandsMetadata]]]:
+	def infer(
+		self, image: np.ndarray
+	) -> Optional[List[Inference[MediapipeHandsMetadata]]]:
 		if self._landmarker is None:
 			raise RuntimeError("Landmarker is closed")
 		return get_inferences_from_raw(self._landmarker.detect(get_mp_image(image)))
@@ -93,7 +95,9 @@ class MPVideoLandmarker(VideoLandmarker):
 		)
 		self._landmarker = HandLandmarker.create_from_options(options)
 
-	def infer(self, image: np.ndarray, timestamp_ms: int) -> Optional[List[Inference[MediapipeHandsMetadata]]]:
+	def infer(
+		self, image: np.ndarray, timestamp_ms: int
+	) -> Optional[List[Inference[MediapipeHandsMetadata]]]:
 		if self._landmarker is None:
 			raise RuntimeError("Landmarker is closed")
 		return get_inferences_from_raw(
@@ -110,7 +114,9 @@ class MPLiveStreamLandmarker(LiveStreamLandmarker):
 	def __init__(
 		self,
 		model_path: str,
-		callback: Callable[[List[Inference[MediapipeHandsMetadata]], np.ndarray, int], None],
+		callback: Callable[
+			[List[Inference[MediapipeHandsMetadata]], np.ndarray, int], None
+		],
 		num_hands: int = 1,
 		min_detection_confidence: float = 0.6,
 		min_presence_confidence: float = 0.6,

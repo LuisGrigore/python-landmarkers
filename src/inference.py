@@ -1,6 +1,6 @@
 from typing import Generic, Iterable, Optional, TypeVar
 import numpy as np
-from src.landmarks import LandmarkSequence, Landmarks
+from .landmarks import LandmarkSequence, Landmarks
 
 
 def validate_shape(
