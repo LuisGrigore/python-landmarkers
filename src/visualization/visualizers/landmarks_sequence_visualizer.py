@@ -1,8 +1,8 @@
 from typing import Iterable, Iterator
 import numpy as np
 
-from src.visualization.layers.sequence_layer import HasSequence
-from src.visualization.visualizers.landmarks_visualizer import LandmarksVisualizer
+from ..layers.sequence_layer import HasSequence
+from .landmarks_visualizer import LandmarksVisualizer
 from ...landmarks.landmarks import LandmarksSequence
 from ..layers.points_layer import HasPoints
 from ..layers.centroid_layer import HasCentroid
