@@ -101,7 +101,7 @@ class MPVideoLandmarker(VideoLandmarker):
 		if self._landmarker is None:
 			raise RuntimeError("Landmarker is closed")
 		return get_inferences_from_raw(
-			self._landmarker.detect_from_video(get_mp_image(image), timestamp_ms)
+			self._landmarker.detect_for_video(get_mp_image(image), timestamp_ms)
 		)
 
 	def close(self) -> None:
