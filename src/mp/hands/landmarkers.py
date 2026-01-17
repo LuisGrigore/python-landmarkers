@@ -1,9 +1,9 @@
 from typing import Callable, List, Optional
 import numpy as np
-from ...landmarkers import ImageLandmarker, LiveStreamLandmarker, VideoLandmarker
+from ...landmarkers.landmarkers import ImageLandmarker, LiveStreamLandmarker, VideoLandmarker
 import mediapipe as mp
 
-from ...inference import Inference
+from ...inferences.inference import Inference
 from .hands_results import landmark_list_to_ndarray, HandLandmarkerResultProtocol
 from .metadata import MediapipeHandsMetadata
 

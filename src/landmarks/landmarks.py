@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Optional, Union
 import numpy as np
 
@@ -51,7 +52,9 @@ class Landmarks:
 		return float(np.linalg.norm(self._landmarks[a] - self._landmarks[b]))
 
 	def bounding_box(self) -> np.ndarray:
-		return np.stack([self._landmarks.min(axis=0), self._landmarks.max(axis=0)], axis=0)
+		return np.stack(
+			[self._landmarks.min(axis=0), self._landmarks.max(axis=0)], axis=0
+		)
 
 	def bounding_box_2d(self) -> np.ndarray:
 		xy = self._landmarks[:, :2]
@@ -94,9 +97,33 @@ class Landmarks:
 		return Landmarks(self._landmarks[indices])
 
 
-class LandmarkSequence:
-	def __init__(self, landmarks: list[Landmarks]):
-		self._landmarks = landmarks
+class LandmarksSequence:
+	def __init__(self):
+		self._landmarks: list[Landmarks] = []
+		self._time_stamps_ms: list[int] = []
+ 
+	@classmethod
+	def from_lists(
+		cls,
+		inferences: list[Landmarks],
+		time_stamps_ms: list[int],
+	) -> "LandmarksSequence":
+		if len(inferences) != len(time_stamps_ms):
+			raise ValueError("Lengths must match")
+
+		obj = cls()
+		obj._landmarks = inferences
+		obj._time_stamps_ms = time_stamps_ms
+		return obj
+
+
+	@property
+	def landmarks(self) -> list[Landmarks]:
+		return deepcopy(self._landmarks)
+
+	@property
+	def time_stamps_ms(self):
+		return self._time_stamps_ms.copy()
 
 	@property
 	def array(self) -> np.ndarray:
@@ -110,17 +137,33 @@ class LandmarkSequence:
 	def n_points(self) -> int:
 		return self._landmarks[0].n_points if self.n_frames > 0 else 0
 
-	def centered(self, reference: Optional[Union[int, np.ndarray]] = None) -> "LandmarkSequence":
-		return LandmarkSequence([lm.centered(reference) for lm in self._landmarks])
+	def append(self, landmarks: Landmarks, time_stamp_ms: int) -> None:
+		self._landmarks.append(landmarks)
+		self._time_stamps_ms.append(time_stamp_ms)
+ 
+	def centered(
+		self, reference: Optional[Union[int, np.ndarray]] = None
+	) -> "LandmarksSequence":
+		return LandmarksSequence.from_lists(
+			[lm.centered(reference) for lm in self._landmarks], self._time_stamps_ms
+		)
 
-	def normalized(self, reference: Optional[Union[int, np.ndarray]] = None) -> "LandmarkSequence":
-		return LandmarkSequence([lm.normalized(reference) for lm in self._landmarks])
+	def normalized(
+		self, reference: Optional[Union[int, np.ndarray]] = None
+	) -> "LandmarksSequence":
+		return LandmarksSequence.from_lists(
+			[lm.normalized(reference) for lm in self._landmarks], self._time_stamps_ms
+		)
 
-	def scaled(self, factor: float) -> "LandmarkSequence":
-		return LandmarkSequence([lm.scaled(factor) for lm in self._landmarks])
+	def scaled(self, factor: float) -> "LandmarksSequence":
+		return LandmarksSequence.from_lists(
+			[lm.scaled(factor) for lm in self._landmarks], self._time_stamps_ms
+		)
 
-	def rotated_2d(self, angle_rad: float) -> "LandmarkSequence":
-		return LandmarkSequence([lm.rotated_2d(angle_rad) for lm in self._landmarks])
+	def rotated_2d(self, angle_rad: float) -> "LandmarksSequence":
+		return LandmarksSequence.from_lists(
+			[lm.rotated_2d(angle_rad) for lm in self._landmarks], self._time_stamps_ms
+		)
 
 	def centroid(self) -> np.ndarray:
 		return np.stack([lm.centroid() for lm in self._landmarks], axis=0)
@@ -128,8 +171,10 @@ class LandmarkSequence:
 	def pairwise_distances(self) -> np.ndarray:
 		return np.stack([lm.pairwise_distances() for lm in self._landmarks], axis=0)
 
-	def subset(self, indices: list[int]) -> "LandmarkSequence":
-		return LandmarkSequence([lm.subset(indices) for lm in self._landmarks])
+	def subset(self, indices: list[int]) -> "LandmarksSequence":
+		return LandmarksSequence.from_lists(
+			[lm.subset(indices) for lm in self._landmarks], self._time_stamps_ms
+		)
 
 	def variance(self) -> np.ndarray:
 		return self.array.var(axis=0)
@@ -142,10 +187,10 @@ class LandmarkSequence:
 
 	def bounding_box_2d(self) -> np.ndarray:
 		return np.stack([lm.bounding_box_2d() for lm in self._landmarks], axis=0)
-	
+
 	def extent(self) -> np.ndarray:
 		return np.stack([lm.extent() for lm in self._landmarks], axis=0)
-	
+
 	def distance_to(self, point: np.ndarray) -> np.ndarray:
 		return np.stack([lm.distance_to(point) for lm in self._landmarks], axis=0)
 

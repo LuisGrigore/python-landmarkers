@@ -19,4 +19,4 @@ dev = [
 
 [tool.setuptools]
 package-dir = {"landmarkers" = "src"}
-packages = ["landmarkers", "landmarkers.mp.hands"]
+packages = ["landmarkers"]

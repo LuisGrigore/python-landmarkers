@@ -1,6 +1,6 @@
 from typing import Generic, Iterable, Optional, TypeVar
 import numpy as np
-from .landmarks import LandmarkSequence, Landmarks
+from ..landmarks.landmarks import LandmarksSequence, Landmarks
 
 
 def validate_shape(
@@ -100,19 +100,37 @@ class InferenceSequence(Generic[M]):
 		self._time_stamps_ms: list[int] = []
 		self._metadata: Optional[M] = None
 
-	def add_hand(self, hand: Inference[M], time_stamp_ms: int) -> None:
+	@classmethod
+	def from_lists(
+		cls,
+		inferences: list[Inference[M]],
+		time_stamps_ms: list[int],
+	) -> "InferenceSequence[M]":
+		if len(inferences) != len(time_stamps_ms):
+			raise ValueError("Lengths must match")
+
+		obj = cls()
+		obj._inferences = inferences
+		obj._time_stamps_ms = time_stamps_ms
+		return obj
+
+	def append(self, hand: Inference[M], time_stamp_ms: int) -> None:
 		if self._metadata is None:
 			self._metadata = hand.metadata
 		self._inferences.append(hand)
 		self._time_stamps_ms.append(time_stamp_ms)
+  
+	@property
+	def time_stamps_ms(self):
+		return self._time_stamps_ms.copy()
 
 	@property
-	def landmarks_sequence(self) -> LandmarkSequence:
-		return LandmarkSequence([hand.landmarks for hand in self._inferences])
+	def landmarks_sequence(self) -> LandmarksSequence:
+		return LandmarksSequence.from_lists([hand.landmarks for hand in self._inferences], self._time_stamps_ms)
 
 	@property
-	def world_landmarks_sequence(self) -> LandmarkSequence:
-		return LandmarkSequence([hand.world_landmarks for hand in self._inferences])
+	def world_landmarks_sequence(self) -> LandmarksSequence:
+		return LandmarksSequence.from_lists([hand.world_landmarks for hand in self._inferences], self._time_stamps_ms)
 
 	@property
 	def metadata(self) -> Optional[M]:

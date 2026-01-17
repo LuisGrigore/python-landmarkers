@@ -3,9 +3,6 @@ from typing import Literal, Protocol, Sequence, runtime_checkable
 import numpy as np
 
 
-
-
-
 HandednessLabel = Literal["Left", "Right"]
 
 
