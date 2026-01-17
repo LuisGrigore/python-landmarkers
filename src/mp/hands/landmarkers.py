@@ -31,9 +31,9 @@ def get_inferences_from_raw(
 			landmarks=landmark_list_to_ndarray(landmarks),
 			world_landmarks=landmark_list_to_ndarray(world_landmarks),
 			metadata=MediapipeHandsMetadata(
-				index=handedness.index,
-				score=handedness.score,
-				category_name=handedness.category_name,
+				index=handedness[0].index,
+				score=handedness[0].score,
+				category_name=handedness[0].category_name,
 			),
 		)
 		inferences.append(inference)

@@ -23,14 +23,14 @@ class Landmark(Protocol):
 
 @runtime_checkable
 class HandLandmarkerResultProtocol(Protocol):
-	handedness: Sequence[Category]
+	handedness: Sequence[Sequence[Category]]
 	hand_landmarks: Sequence[Sequence[Landmark]]
 	hand_world_landmarks: Sequence[Sequence[Landmark]]
 
 
 def landmark_list_to_ndarray(
-    landmarks: Sequence[Landmark],
+	landmarks: Sequence[Landmark],
 ) -> np.ndarray:
-    return np.asarray(
-        [(lm.x, lm.y, lm.z) for lm in landmarks],
-    )
+	return np.asarray(
+		[(lm.x, lm.y, lm.z) for lm in landmarks],
+	)
