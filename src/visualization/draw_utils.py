@@ -7,7 +7,7 @@ def draw_circle(
     center: tuple[int, int],
     radius: int,
     color: tuple[int, int, int],
-    thickness: int = -1,
+    thickness: int = 3,
 ) -> None:
     cv2.circle(img, center, radius, color, thickness)
 
