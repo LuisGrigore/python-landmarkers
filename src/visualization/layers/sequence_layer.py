@@ -1,6 +1,6 @@
 
 from abc import abstractmethod
-from typing import Generic, Iterable, Iterator, List, Protocol, TypeVar, runtime_checkable
+from typing import Generic, Iterable, Iterator, List, Protocol, Sequence, TypeVar, runtime_checkable
 
 import numpy as np
 
@@ -12,7 +12,7 @@ T_SequenceElement = TypeVar("T_SequenceElement", covariant=True)
 @runtime_checkable
 class HasSequence(Protocol[T_SequenceElement]):
     @abstractmethod
-    def sequence(self) -> Iterator[T_SequenceElement]:
+    def sequence(self) -> Sequence[T_SequenceElement]:
         pass
     @abstractmethod
     def time_stamps_ms(self) -> Iterable[int]:
@@ -40,7 +40,7 @@ class SequenceLayer(Generic[T_Sequence, T_SequenceElement]):
         self._time_scale_ms = time_scale_ms
 
     def draw(self, data: T_Sequence, image: np.ndarray) -> None:
-        sequence = data.sequence()
+        sequence = reversed(data.sequence())
         timestamps = data.time_stamps_ms()
 
         if not self._time_fade:
