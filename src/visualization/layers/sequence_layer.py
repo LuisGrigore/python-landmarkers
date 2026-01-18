@@ -1,24 +1,11 @@
-
-from abc import abstractmethod
-from typing import Generic, Iterable, Iterator, List, Protocol, TypeVar, runtime_checkable
+from typing import Generic, List, TypeVar
 
 import numpy as np
 
+from ..protocols import HasSequence
+
 from ..layers.layer_base import Layer
 
-
-T_SequenceElement = TypeVar("T_SequenceElement", covariant=True)
-
-@runtime_checkable
-class HasSequence(Protocol[T_SequenceElement]):
-    @abstractmethod
-    def sequence(self) -> Iterator[T_SequenceElement]:
-        pass
-    @abstractmethod
-    def time_stamps_ms(self) -> Iterable[int]:
-        pass
-    
-    
 T_Sequence = TypeVar("T_Sequence", bound=HasSequence)
 T_SequenceElement = TypeVar("T_SequenceElement", contravariant=True)
 

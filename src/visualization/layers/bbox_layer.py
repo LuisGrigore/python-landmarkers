@@ -1,16 +1,10 @@
-
-from abc import abstractmethod
-from typing import Generic, Protocol, TypeVar, runtime_checkable
+from typing import Generic, TypeVar
 
 import numpy as np
 
-from ..draw_utils import draw_rectangle
+from ..protocols import HasBBox
 
-@runtime_checkable
-class HasBBox(Protocol):
-	@abstractmethod
-	def bbox(self) -> np.ndarray:
-		pass
+from ..draw_utils import draw_rectangle
 
 T_BBox = TypeVar("T_BBox", bound=HasBBox)
 
