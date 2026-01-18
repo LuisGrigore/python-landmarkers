@@ -25,5 +25,6 @@ class PointsLayer(Generic[T_Points]):
         self.radius = radius
 
     def draw(self, data: T_Points, image: np.ndarray) -> None:
-        for x, y in data.points().astype(int):
+        for point in data.points().astype(int):
+            x, y = point[:2]
             draw_circle(image, (x, y), self.radius, self.color)

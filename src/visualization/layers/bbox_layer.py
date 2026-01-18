@@ -25,6 +25,7 @@ class BBoxLayer(Generic[T_BBox]):
 
     def draw(self, data: T_BBox, image: np.ndarray) -> None:
         bbox = data.bbox().astype(int)
-        top_left, bottom_right = bbox[0], bbox[1]
+        top_left = tuple(bbox[0][:2])
+        bottom_right = tuple(bbox[1][:2])
 
         draw_rectangle(image, top_left, bottom_right, self.color, self.thickness)

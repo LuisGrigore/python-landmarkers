@@ -25,5 +25,6 @@ class CentroidLayer(Generic[T_Centroid]):
 		self.radius = radius
 
 	def draw(self, data: T_Centroid, image: np.ndarray) -> None:
-		x, y = data.centroid().astype(int)
-		draw_circle(image, (x, y), self.radius, self.color)
+		centroid = data.centroid().astype(int)
+		x, y = centroid[:2]
+		draw_circle(image,(x,y),self.radius,self.color)
