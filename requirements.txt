@@ -14,3 +14,5 @@ Pygments==2.19.2
 pyproject_hooks==1.2.0
 pytest==9.0.2
 sounddevice==0.5.3
+typing_extensions==4.15.0
+wadler_lindig==0.1.7

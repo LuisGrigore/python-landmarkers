@@ -9,8 +9,9 @@ class LandmarksVisualizer(HasBBox, HasCentroid, HasPoints):
 	def __init__(self, landmarks: Landmarks) -> None:
 		self._landmarks = landmarks
   
-	def bbox(self) -> np.ndarray:
-		return self._landmarks.bounding_box_2d()
+	def bbox(self) -> tuple[tuple[int,int], tuple[int,int]]:
+		bbox = self._landmarks.bounding_box_2d()
+		return ((bbox[0][0],bbox[0][1]),(bbox[1][0],bbox[1][1]))
 
 	def centroid(self) -> np.ndarray:
 		return self._landmarks.centroid()

@@ -12,8 +12,9 @@ class LandmarksSequenceVisualizer(HasBBox, HasCentroid, HasPoints, HasSequence):
 	def __init__(self, landmarks_sequence: LandmarksSequence) -> None:
 		self._landmarks_sequence = landmarks_sequence
   
-	def bbox(self) -> np.ndarray:
-		return self._landmarks_sequence.bounding_box_2d()[-1]
+	def bbox(self) -> tuple[tuple[int,int], tuple[int,int]]:
+		last_bbox = self._landmarks_sequence.bounding_box_2d()[-1]
+		return ((last_bbox[0][0],last_bbox[0][1]),(last_bbox[1][0],last_bbox[1][1]))
 
 	def centroid(self) -> np.ndarray:
 		return self._landmarks_sequence.centroid()[-1]
