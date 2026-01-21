@@ -129,19 +129,43 @@ class LandmarksSequence(BaseSequence[Landmarks]):
 	def n_points(self) -> int:
 		return self._elements[0].n_points if self.n_frames > 0 else 0
 
-	def resample(self, step: int) -> "LandmarksSequence":
+	def resample(self, step: Optional[int] = None) -> "LandmarksSequence":
+		"""
+		Resamplea la secuencia a timestamps uniformes.
+		
+		Parámetros
+		----------
+		step : int | None
+			Si se pasa un valor, se generan timestamps cada `step` ms.
+			Si es None, se generan n_frames uniformes a lo largo de toda la duración.
+		
+		Devuelve
+		-------
+		LandmarksSequence
+			Nueva secuencia resampleada.
+		"""
 		if self.n_frames == 0:
 			return LandmarksSequence()
+
+		# Original timestamps y array (n_frames, n_points, 3)
 		ts = np.array(self._time_stamps_ms)
 		arr = self.array
-		ts_new = np.arange(ts[0], ts[-1] + 1, step)
-		n_points = arr.shape[1]
-		n_dims = arr.shape[2]
-		arr_new = np.zeros((len(ts_new), n_points, n_dims))
+		n_frames, n_points, n_dims = arr.shape
 
+		# Calcular timestamps nuevos
+		if step is not None:
+			ts_new = np.arange(ts[0], ts[-1] + 1, step)
+		else:
+			# Mantener misma cantidad de frames, distribución uniforme
+			ts_new = np.linspace(ts[0], ts[-1], n_frames)
+
+		# Interpolación lineal para cada punto y dimensión
+		arr_new = np.zeros((len(ts_new), n_points, n_dims))
 		for p in range(n_points):
 			for d in range(n_dims):
 				arr_new[:, p, d] = np.interp(ts_new, ts, arr[:, p, d])
+
+		# Crear nueva secuencia
 		landmarks_new = [Landmarks(arr_new[i]) for i in range(len(ts_new))]
 		return LandmarksSequence.from_list(landmarks_new, list(ts_new))
 
