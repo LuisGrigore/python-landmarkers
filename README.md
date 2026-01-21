@@ -177,7 +177,7 @@ if inferences:
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
 ```
-
+```python
 	# Render on image
 	rendered_image = viewer.render(visualizer, background=image)
 	cv2.imshow('Landmarks', rendered_image)
