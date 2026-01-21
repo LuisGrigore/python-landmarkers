@@ -99,48 +99,64 @@ class Landmarks:
 BaseSequenceLike = TypeVar("BaseSequenceLike", bound= BaseSequence[Any])
 
 def sequence_transform(fn: Callable[..., Any]):
-    def wrapper(self: BaseSequenceLike, *args, **kwargs) -> BaseSequenceLike:
-        return self.map(lambda lm: fn(lm, *args, **kwargs))
-    return wrapper
+	def wrapper(self: BaseSequenceLike, *args, **kwargs) -> BaseSequenceLike:
+		return self.map(lambda lm: fn(lm, *args, **kwargs))
+	return wrapper
 
 def sequence_list(fn: Callable[..., Any]):
-    def wrapper(self: "BaseSequence[Any]", *args, **kwargs):
-        return [fn(lm, *args, **kwargs) for lm in self._elements]
-    return wrapper
+	def wrapper(self: "BaseSequence[Any]", *args, **kwargs):
+		return [fn(lm, *args, **kwargs) for lm in self._elements]
+	return wrapper
 
 class LandmarksSequence(BaseSequence[Landmarks]):
-    def __init__(self, fixed_buffer_length: Optional[int] = None):
-        super().__init__(fixed_buffer_length)
+	def __init__(self, fixed_buffer_length: Optional[int] = None):
+		super().__init__(fixed_buffer_length)
 
-    # -------- Acceso a datos --------
-    @property
-    def landmarks(self) -> list[Landmarks]:
-        return deepcopy(list(self._elements))
+	# -------- Acceso a datos --------
+	@property
+	def landmarks(self) -> list[Landmarks]:
+		return deepcopy(list(self._elements))
 
-    @property
-    def array(self) -> LandmarkSequenceArray:
-        return np.stack([lm.array for lm in self._elements], axis=0)
+	@property
+	def array(self) -> LandmarkSequenceArray:
+		return np.stack([lm.array for lm in self._elements], axis=0)
 
-    @property
-    def n_frames(self) -> int:
-        return len(self._elements)
+	@property
+	def n_frames(self) -> int:
+		return len(self._elements)
 
-    @property
-    def n_points(self) -> int:
-        return self._elements[0].n_points if self.n_frames > 0 else 0
+	@property
+	def n_points(self) -> int:
+		return self._elements[0].n_points if self.n_frames > 0 else 0
 
-    centered = sequence_transform(Landmarks.centered)
-    normalized = sequence_transform(Landmarks.normalized)
-    scaled = sequence_transform(Landmarks.scaled)
-    rotated_2d = sequence_transform(Landmarks.rotated_2d)
-    subset = sequence_transform(Landmarks.subset)
+	def resample(self, step: int) -> "LandmarksSequence":
+		if self.n_frames == 0:
+			return LandmarksSequence()
+		ts = np.array(self._time_stamps_ms)
+		arr = self.array
+		ts_new = np.arange(ts[0], ts[-1] + 1, step)
+		n_points = arr.shape[1]
+		n_dims = arr.shape[2]
+		arr_new = np.zeros((len(ts_new), n_points, n_dims))
 
-    centroid = sequence_list(Landmarks.centroid)
-    distance = sequence_list(Landmarks.distance)
-    bounding_box = sequence_list(Landmarks.bounding_box)
-    bounding_box_2d = sequence_list(Landmarks.bounding_box_2d)
-    extent = sequence_list(Landmarks.extent)
-    distance_to = sequence_list(Landmarks.distance_to)
-    pairwise_distances = sequence_list(Landmarks.pairwise_distances)
-    angle = sequence_list(Landmarks.angle)
-    variance = sequence_list(Landmarks.variance)
+		for p in range(n_points):
+			for d in range(n_dims):
+				arr_new[:, p, d] = np.interp(ts_new, ts, arr[:, p, d])
+		landmarks_new = [Landmarks(arr_new[i]) for i in range(len(ts_new))]
+		return LandmarksSequence.from_list(landmarks_new, list(ts_new))
+
+	centered = sequence_transform(Landmarks.centered)
+	normalized = sequence_transform(Landmarks.normalized)
+	scaled = sequence_transform(Landmarks.scaled)
+	rotated_2d = sequence_transform(Landmarks.rotated_2d)
+	subset = sequence_transform(Landmarks.subset)
+
+	centroid = sequence_list(Landmarks.centroid)
+	distance = sequence_list(Landmarks.distance)
+	bounding_box = sequence_list(Landmarks.bounding_box)
+	bounding_box_2d = sequence_list(Landmarks.bounding_box_2d)
+	extent = sequence_list(Landmarks.extent)
+	distance_to = sequence_list(Landmarks.distance_to)
+	pairwise_distances = sequence_list(Landmarks.pairwise_distances)
+	angle = sequence_list(Landmarks.angle)
+	variance = sequence_list(Landmarks.variance)
