@@ -177,14 +177,6 @@ if inferences:
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
 ```
-```python
-	# Render on image
-	rendered_image = viewer.render(visualizer, background=image)
-	cv2.imshow('Landmarks', rendered_image)
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()
-```
-
 ## API
 
 ### Main Classes and Methods
@@ -211,7 +203,7 @@ if inferences:
 | Class | Description |
 |-------|-------------|
 | `Inference[M]` | Contains landmarks, world landmarks, and metadata. |
-| `Landmarks` | Represents a set of 2D/3D landmark points. |
+| `Landmarks` | Represents a set of landmark points. |
 | `LandmarksSequence` | Sequence of landmarks over time. |
 | `InferenceSequence[M]` | Sequence of inferences. |
 
