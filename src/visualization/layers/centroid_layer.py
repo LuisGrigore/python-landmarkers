@@ -1,7 +1,8 @@
-from abc import abstractmethod
-from typing import Generic, Protocol, TypeVar, runtime_checkable
+from typing import Generic, TypeVar
 
 import numpy as np
+
+from ...types import PixelCoordinate2D
 
 from ..protocols import HasCentroid
 
@@ -19,6 +20,10 @@ class CentroidLayer(Generic[T_Centroid]):
         self.radius = radius
 
     def draw(self, data: T_Centroid, image: np.ndarray) -> None:
-        centroid = data.centroid().astype(int)
+        h, w = image.shape[:2]
+        centroid = data.centroid()
+        px_centroid = PixelCoordinate2D(
+                int(np.clip(centroid.x * w, 0, w - 1)), int(np.clip(centroid.y * h, 0, h - 1))
+            )
         x, y = centroid[:2]
-        draw_circle(image, (x, y), self.radius, self.color)
+        draw_circle(image, px_centroid, self.radius, self.color)

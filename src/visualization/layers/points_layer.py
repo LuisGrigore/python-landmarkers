@@ -1,6 +1,8 @@
 from typing import Generic, TypeVar
 import numpy as np
 
+from ...types import PixelCoordinate2D
+
 from ..protocols import HasPoints
 
 from ..draw_utils import draw_circle
@@ -22,9 +24,8 @@ class PointsLayer(Generic[T_Points]):
         h, w = image.shape[:2]
 
         for point in data.points():
-            x_norm, y_norm = point[:2]
 
-            x_px = int(np.clip(x_norm * w, 0, w - 1))
-            y_px = int(np.clip(y_norm * h, 0, h - 1))
-
-            draw_circle(image, (x_px, y_px), self.radius, self.color)
+            px_coord = PixelCoordinate2D(
+                int(np.clip(point.x * w, 0, w - 1)), int(np.clip(point.y * h, 0, h - 1))
+            )
+            draw_circle(image, px_coord, self.radius, self.color)

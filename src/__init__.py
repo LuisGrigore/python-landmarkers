@@ -1,4 +1,4 @@
-from . import landmarkers, inferences, landmarks, mp, visualization
+from . import landmarkers, inferences, landmarks, mp, visualization, mappers, types
 
 __all__ = [
     "landmarkers",
@@ -6,4 +6,6 @@ __all__ = [
     "mp",
     "visualization",
     "landmarks",
+    "mappers",
+    "types"
 ]

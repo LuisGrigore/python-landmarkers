@@ -1,14 +1,19 @@
 from copy import deepcopy
-from typing import Optional, Union
+from typing import Optional, TypeAlias, Union
 import numpy as np
+
+from ..types import LandmarkArray, LandmarkSequenceArray, NormalizedCoordinate3D
+
+
+Reference: TypeAlias = Union[int, NormalizedCoordinate3D]
 
 
 class Landmarks:
-	def __init__(self, landmarks: np.ndarray) -> None:
-		self._landmarks: np.ndarray = landmarks
+	def __init__(self, landmarks: LandmarkArray) -> None:
+		self._landmarks: LandmarkArray = landmarks
 
 	@property
-	def array(self) -> np.ndarray:
+	def array(self) -> LandmarkArray:
 		return self._landmarks.copy()
 
 	@property
@@ -16,36 +21,32 @@ class Landmarks:
 		return self._landmarks.shape[0]
 
 	def _resolve_reference(
-		self, reference: Optional[Union[int, np.ndarray]]
-	) -> np.ndarray:
+		self, reference: Optional[Reference]
+	) -> NormalizedCoordinate3D:
 		if isinstance(reference, int):
 			if not (0 <= reference < self.n_points):
 				raise ValueError(f"Reference index {reference} out of bounds")
 			return self._landmarks[reference]
-		elif isinstance(reference, np.ndarray):
-			if reference.shape != self._landmarks.shape[1:]:
-				raise ValueError(
-					f"Reference point must have shape {self._landmarks.shape[1:]}"
-				)
+		elif isinstance(reference, NormalizedCoordinate3D):
 			return reference
 		else:
 			return self.centroid()
 
 	def centered(
-		self, reference: Optional[Union[int, np.ndarray]] = None
+		self, reference: Optional[Reference] = None
 	) -> "Landmarks":
 		ref_point = self._resolve_reference(reference)
 		return Landmarks(self._landmarks - ref_point)
 
 	def normalized(
-		self, reference: Optional[Union[int, np.ndarray]] = None
+		self, reference: Optional[Reference] = None
 	) -> "Landmarks":
 		ref_point = self._resolve_reference(reference)
 		diff = self._landmarks - ref_point
 		scale = np.linalg.norm(diff, axis=1).max()
 		return Landmarks(diff / scale)
 
-	def centroid(self) -> np.ndarray:
+	def centroid(self) -> NormalizedCoordinate3D:
 		return self._landmarks.mean(axis=0)
 
 	def distance(self, a: int, b: int) -> float:
@@ -126,7 +127,7 @@ class LandmarksSequence:
 		return self._time_stamps_ms.copy()
 
 	@property
-	def array(self) -> np.ndarray:
+	def array(self) -> LandmarkSequenceArray:
 		return np.stack([lm.array for lm in self._landmarks], axis=0)
 
 	@property
@@ -142,14 +143,14 @@ class LandmarksSequence:
 		self._time_stamps_ms.append(time_stamp_ms)
  
 	def centered(
-		self, reference: Optional[Union[int, np.ndarray]] = None
+		self, reference: Optional[Reference] = None
 	) -> "LandmarksSequence":
 		return LandmarksSequence.from_lists(
 			[lm.centered(reference) for lm in self._landmarks], self._time_stamps_ms
 		)
 
 	def normalized(
-		self, reference: Optional[Union[int, np.ndarray]] = None
+		self, reference: Optional[Reference] = None
 	) -> "LandmarksSequence":
 		return LandmarksSequence.from_lists(
 			[lm.normalized(reference) for lm in self._landmarks], self._time_stamps_ms
@@ -165,8 +166,8 @@ class LandmarksSequence:
 			[lm.rotated_2d(angle_rad) for lm in self._landmarks], self._time_stamps_ms
 		)
 
-	def centroid(self) -> np.ndarray:
-		return np.stack([lm.centroid() for lm in self._landmarks], axis=0)
+	def centroid(self) -> list[NormalizedCoordinate3D]:
+		return [lm.centroid() for lm in self._landmarks]
 
 	def pairwise_distances(self) -> np.ndarray:
 		return np.stack([lm.pairwise_distances() for lm in self._landmarks], axis=0)

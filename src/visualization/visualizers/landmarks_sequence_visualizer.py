@@ -1,26 +1,13 @@
 from typing import Iterable, Iterator
-import numpy as np
 
 from ..layers.sequence_layer import HasSequence
 from .landmarks_visualizer import LandmarksVisualizer
 from ...landmarks.landmarks import LandmarksSequence
-from ..layers.points_layer import HasPoints
-from ..layers.centroid_layer import HasCentroid
-from ..layers.bbox_layer import HasBBox
 
-class LandmarksSequenceVisualizer(HasBBox, HasCentroid, HasPoints, HasSequence):
+
+class LandmarksSequenceVisualizer(HasSequence):
 	def __init__(self, landmarks_sequence: LandmarksSequence) -> None:
 		self._landmarks_sequence = landmarks_sequence
-  
-	def bbox(self) -> tuple[tuple[int,int], tuple[int,int]]:
-		last_bbox = self._landmarks_sequence.bounding_box_2d()[-1]
-		return ((last_bbox[0][0],last_bbox[0][1]),(last_bbox[1][0],last_bbox[1][1]))
-
-	def centroid(self) -> np.ndarray:
-		return self._landmarks_sequence.centroid()[-1]
-
-	def points(self) -> np.ndarray:
-		return self._landmarks_sequence.array[-1]
 
 	def sequence(self) -> Iterator[LandmarksVisualizer]:
 		for landmarks in self._landmarks_sequence.landmarks:
