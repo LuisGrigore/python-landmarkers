@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Optional, Self, TypeAlias, Union
+from typing import Any, Callable, Optional, TypeAlias, Union
 import numpy as np
 
 from ..base_sequence import BaseSequence
@@ -96,6 +96,17 @@ class Landmarks:
 		return Landmarks(self._landmarks[indices])
 
 
+
+def sequence_transform(fn: Callable[..., Any]):
+    def wrapper(self: "BaseSequence[Any]", *args, **kwargs) -> "BaseSequence[Any]":
+        return self.map(lambda lm: fn(lm, *args, **kwargs))
+    return wrapper
+
+def sequence_list(fn: Callable[..., Any]):
+    def wrapper(self: "BaseSequence[Any]", *args, **kwargs):
+        return [fn(lm, *args, **kwargs) for lm in self._elements]
+    return wrapper
+
 class LandmarksSequence(BaseSequence[Landmarks]):
     def __init__(self, fixed_buffer_length: Optional[int] = None):
         super().__init__(fixed_buffer_length)
@@ -117,46 +128,18 @@ class LandmarksSequence(BaseSequence[Landmarks]):
     def n_points(self) -> int:
         return self._elements[0].n_points if self.n_frames > 0 else 0
 
-    # -------- Transformaciones (usando map del padre) --------
-    def centered(self, reference: Optional[Reference] = None) -> Self:
-        return self.map(lambda lm: lm.centered(reference))
+    centered = sequence_transform(Landmarks.centered)
+    normalized = sequence_transform(Landmarks.normalized)
+    scaled = sequence_transform(Landmarks.scaled)
+    rotated_2d = sequence_transform(Landmarks.rotated_2d)
+    subset = sequence_transform(Landmarks.subset)
 
-    def normalized(self, reference: Optional[Reference] = None) -> Self:
-        return self.map(lambda lm: lm.normalized(reference))
-
-    def scaled(self, factor: float) -> Self:
-        return self.map(lambda lm: lm.scaled(factor))
-
-    def rotated_2d(self, angle_rad: float) -> Self:
-        return self.map(lambda lm: lm.rotated_2d(angle_rad))
-
-    def subset(self, indices: list[int]) -> Self:
-        return self.map(lambda lm: lm.subset(indices))
-
-    # -------- Operaciones que no transforman la secuencia --------
-    def centroid(self) -> list[NormalizedCoordinate3D]:
-        return [lm.centroid() for lm in self._elements]
-
-    def pairwise_distances(self) -> np.ndarray:
-        return np.stack([lm.pairwise_distances() for lm in self._elements], axis=0)
-
-    def variance(self) -> np.ndarray:
-        return self.array.var(axis=0)
-
-    def distance(self, a: int, b: int) -> np.ndarray:
-        return np.array([lm.distance(a, b) for lm in self._elements])
-
-    def bounding_box(self) -> np.ndarray:
-        return np.stack([lm.bounding_box() for lm in self._elements], axis=0)
-
-    def bounding_box_2d(self) -> np.ndarray:
-        return np.stack([lm.bounding_box_2d() for lm in self._elements], axis=0)
-
-    def extent(self) -> np.ndarray:
-        return np.stack([lm.extent() for lm in self._elements], axis=0)
-
-    def distance_to(self, point: np.ndarray) -> np.ndarray:
-        return np.stack([lm.distance_to(point) for lm in self._elements], axis=0)
-
-    def angle(self, a: int, b: int, c: int) -> np.ndarray:
-        return np.stack([lm.angle(a, b, c) for lm in self._elements], axis=0)
+    centroid = sequence_list(Landmarks.centroid)
+    distance = sequence_list(Landmarks.distance)
+    bounding_box = sequence_list(Landmarks.bounding_box)
+    bounding_box_2d = sequence_list(Landmarks.bounding_box_2d)
+    extent = sequence_list(Landmarks.extent)
+    distance_to = sequence_list(Landmarks.distance_to)
+    pairwise_distances = sequence_list(Landmarks.pairwise_distances)
+    angle = sequence_list(Landmarks.angle)
+    variance = sequence_list(Landmarks.variance)
