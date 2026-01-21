@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Callable, Optional, TypeAlias, Union
+from typing import Any, Callable, Optional, Self, TypeAlias, Union, TypeVar
 import numpy as np
 
 from ..base_sequence import BaseSequence
@@ -96,9 +96,10 @@ class Landmarks:
 		return Landmarks(self._landmarks[indices])
 
 
+BaseSequenceLike = TypeVar("BaseSequenceLike", bound= BaseSequence[Any])
 
 def sequence_transform(fn: Callable[..., Any]):
-    def wrapper(self: "BaseSequence[Any]", *args, **kwargs) -> "BaseSequence[Any]":
+    def wrapper(self: BaseSequenceLike, *args, **kwargs) -> BaseSequenceLike:
         return self.map(lambda lm: fn(lm, *args, **kwargs))
     return wrapper
 
