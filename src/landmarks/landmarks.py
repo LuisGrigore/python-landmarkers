@@ -32,15 +32,11 @@ class Landmarks:
 		else:
 			return self.centroid()
 
-	def centered(
-		self, reference: Optional[Reference] = None
-	) -> "Landmarks":
+	def centered(self, reference: Optional[Reference] = None) -> "Landmarks":
 		ref_point = self._resolve_reference(reference)
 		return Landmarks(self._landmarks - ref_point)
 
-	def normalized(
-		self, reference: Optional[Reference] = None
-	) -> "Landmarks":
+	def normalized(self, reference: Optional[Reference] = None) -> "Landmarks":
 		ref_point = self._resolve_reference(reference)
 		diff = self._landmarks - ref_point
 		scale = np.linalg.norm(diff, axis=1).max()
@@ -102,7 +98,7 @@ class LandmarksSequence:
 	def __init__(self):
 		self._landmarks: list[Landmarks] = []
 		self._time_stamps_ms: list[int] = []
- 
+
 	@classmethod
 	def from_lists(
 		cls,
@@ -117,6 +113,9 @@ class LandmarksSequence:
 		obj._time_stamps_ms = time_stamps_ms
 		return obj
 
+	@property
+	def sequence_length(self) -> int:
+		return len(self._time_stamps_ms)
 
 	@property
 	def landmarks(self) -> list[Landmarks]:
@@ -141,17 +140,13 @@ class LandmarksSequence:
 	def append(self, landmarks: Landmarks, time_stamp_ms: int) -> None:
 		self._landmarks.append(landmarks)
 		self._time_stamps_ms.append(time_stamp_ms)
- 
-	def centered(
-		self, reference: Optional[Reference] = None
-	) -> "LandmarksSequence":
+
+	def centered(self, reference: Optional[Reference] = None) -> "LandmarksSequence":
 		return LandmarksSequence.from_lists(
 			[lm.centered(reference) for lm in self._landmarks], self._time_stamps_ms
 		)
 
-	def normalized(
-		self, reference: Optional[Reference] = None
-	) -> "LandmarksSequence":
+	def normalized(self, reference: Optional[Reference] = None) -> "LandmarksSequence":
 		return LandmarksSequence.from_lists(
 			[lm.normalized(reference) for lm in self._landmarks], self._time_stamps_ms
 		)

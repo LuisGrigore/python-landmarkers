@@ -10,26 +10,6 @@ def validate_shape(
 	*,
 	name: str = "array",
 ) -> None:
-	"""
-	Validate that a numpy array has the expected shape.
-
-	Parameters
-	----------
-	arr : np.ndarray
-		Array to validate.
-	expected_shape : Iterable[int | None]
-		Expected shape. Use None for flexible dimensions.
-		Example: (None, 3)
-	name : str
-		Name used in error messages.
-
-	Raises
-	------
-	TypeError
-		If arr is not a numpy array.
-	ValueError
-		If shape does not match.
-	"""
 	if not isinstance(arr, np.ndarray):
 		raise TypeError(f"{name} must be a numpy array, got {type(arr).__name__}")
 
@@ -47,23 +27,6 @@ def validate_shape(
 				f"{name} has invalid shape {arr.shape}: "
 				f"dimension {axis} must be {expected}, got {actual}"
 			)
-
-
-def validate_array(
-	arr: np.ndarray,
-	*,
-	shape: Iterable[int | None] | None = None,
-	dtype: np.dtype | None = None,
-	name: str = "array",
-) -> None:
-	if not isinstance(arr, np.ndarray):
-		raise TypeError(f"{name} must be a numpy array")
-
-	if dtype is not None and arr.dtype != dtype:
-		raise ValueError(f"{name} must have dtype {dtype}, got {arr.dtype}")
-
-	if shape is not None:
-		validate_shape(arr, shape, name=name)
 
 
 M = TypeVar("M")
@@ -96,56 +59,60 @@ class Inference(Generic[M]):
 
 
 class InferenceSequence(Generic[M]):
-    def __init__(self, fixed_buffer_length: Optional[int] = None):
-        if fixed_buffer_length is not None and fixed_buffer_length < 1:
-            raise ValueError("fixed_buffer_length must be > 0")
+	def __init__(self, fixed_buffer_length: Optional[int] = None):
+		if fixed_buffer_length is not None and fixed_buffer_length < 1:
+			raise ValueError("fixed_buffer_length must be > 0")
 
-        self._fixed_buffer_length = fixed_buffer_length
-        self._inferences = deque(maxlen=fixed_buffer_length)
-        self._time_stamps_ms = deque(maxlen=fixed_buffer_length)
-        self._metadata: Optional[M] = None
+		self._fixed_buffer_length = fixed_buffer_length
+		self._inferences = deque(maxlen=fixed_buffer_length)
+		self._time_stamps_ms = deque(maxlen=fixed_buffer_length)
+		self._metadata: Optional[M] = None
 
-    @classmethod
-    def from_lists(
-        cls,
-        inferences: list[Inference[M]],
-        time_stamps_ms: list[int],
-        fixed_buffer_length: Optional[int] = None,
-    ) -> "InferenceSequence[M]":
-        if len(inferences) != len(time_stamps_ms):
-            raise ValueError("Lengths must match")
+	@classmethod
+	def from_lists(
+		cls,
+		inferences: list[Inference[M]],
+		time_stamps_ms: list[int],
+		fixed_buffer_length: Optional[int] = None,
+	) -> "InferenceSequence[M]":
+		if len(inferences) != len(time_stamps_ms):
+			raise ValueError("Lengths must match")
 
-        obj = cls(fixed_buffer_length)
-        for inf, ts in zip(inferences, time_stamps_ms):
-            obj.append(inf, ts)
+		obj = cls(fixed_buffer_length)
+		for inf, ts in zip(inferences, time_stamps_ms):
+			obj.append(inf, ts)
 
-        return obj
+		return obj
 
-    def append(self, hand: Inference[M], time_stamp_ms: int) -> None:
-        if self._metadata is None:
-            self._metadata = hand.metadata
+	def append(self, hand: Inference[M], time_stamp_ms: int) -> None:
+		if self._metadata is None:
+			self._metadata = hand.metadata
 
-        self._inferences.append(hand)
-        self._time_stamps_ms.append(time_stamp_ms)
+		self._inferences.append(hand)
+		self._time_stamps_ms.append(time_stamp_ms)
 
-    @property
-    def time_stamps_ms(self) -> list[int]:
-        return list(self._time_stamps_ms)
+	@property
+	def sequence_length(self) -> int:
+		return len(self._time_stamps_ms)
 
-    @property
-    def landmarks_sequence(self) -> LandmarksSequence:
-        return LandmarksSequence.from_lists(
-            [inf.landmarks for inf in self._inferences],
-            list(self._time_stamps_ms),
-        )
+	@property
+	def time_stamps_ms(self) -> list[int]:
+		return list(self._time_stamps_ms)
 
-    @property
-    def world_landmarks_sequence(self) -> LandmarksSequence:
-        return LandmarksSequence.from_lists(
-            [inf.world_landmarks for inf in self._inferences],
-            list(self._time_stamps_ms),
-        )
+	@property
+	def landmarks_sequence(self) -> LandmarksSequence:
+		return LandmarksSequence.from_lists(
+			[inf.landmarks for inf in self._inferences],
+			list(self._time_stamps_ms),
+		)
 
-    @property
-    def metadata(self) -> Optional[M]:
-        return self._metadata
+	@property
+	def world_landmarks_sequence(self) -> LandmarksSequence:
+		return LandmarksSequence.from_lists(
+			[inf.world_landmarks for inf in self._inferences],
+			list(self._time_stamps_ms),
+		)
+
+	@property
+	def metadata(self) -> Optional[M]:
+		return self._metadata
