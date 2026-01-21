@@ -1,18 +1,19 @@
 
-# Landmarkers – Landmark Detection Wrapper
+# Landmarkers – Modular Landmark Detection Library
 
-**Landmarkers** is a Python library that provides a simple interface for landmark detection models.  
-Currently, it supports **hand landmarks using MediaPipe**, but it could support other landmarks in the future.
+**Landmarkers** is a Python library that provides a modular interface for landmark detection models, with built-in visualization capabilities.  
+Currently, it supports **hand landmarks using MediaPipe**, but its architecture allows for easy extension to other landmark types and models.
 
 
 ## Features
 
-- Hand detection in **single images** or **video frame-by-frame** (synchronous mode).  
-- **Asynchronous streaming** mode with user-provided callbacks (LIVE_STREAM).  
-- Results are wrapped in `HandLandmarkerResult` objects with helper methods.  
-- If you want to work **directly with the raw data** returned by the model, without using the `HandLandmarkerResult` helpers, you can use the **raw result protocol** (`HandLandmarkerResultProtocol`).  
-  This avoids unnecessary overhead if you don’t need drawing or helper methods.
-- Compatibility with pythons **context API**.
+- Modular architecture with base classes for different running modes: **Image**, **Video**, and **Live Stream**.
+- **Inference objects** that encapsulate landmark data, world landmarks, and metadata.
+- **Sequences** for handling temporal data and sequences of inferences.
+- **Visualization system** with composable layers (points, centroids, bounding boxes, sequences) and viewers.
+- Results wrapped in structured objects with helper methods.
+- Compatibility with Python's **context API** for automatic resource management.
+- Extensible design for adding new landmark types and models.
 
 
 ## Installation
@@ -26,18 +27,18 @@ pip install git+https://github.com/LuisGrigore/python-landmarkers.git
 ### Requirements
 
 - Python ≥ 3.10
-## Dependencies
 
-### Running
+### Dependencies
+
+#### Running
 
 | Name | Version used |
 |------|--------------|
 | mediapipe | 0.10.31 |
-|numpy | 2.2.6 |
-|opencv-python | 4.12.0.88|
+| numpy | 2.2.6 |
+| opencv-python | 4.12.0.88 |
 
-
-### Development
+#### Development
 
 | Name | Version used |
 |------|--------------|
@@ -49,26 +50,26 @@ pip install git+https://github.com/LuisGrigore/python-landmarkers.git
 ### Image
 
 ```python
-from landmarkers.hands import SyncMediapipeHandLandmarker, MediapipeHandLandmarkerRunningMode as RunningMode
+from landmarkers.mp.hands import MPImageLandmarker
 import cv2
 
 image = cv2.imread("image.jpg")
 
-with SyncMediapipeHandLandmarker(model_path='hand_landmarker.task',
-                                 running_mode=RunningMode.IMAGE) as hand_landmarker:
-		result = hand_landmarker.detect(image)
-		image_with_landmarks = result.draw(image)
-        cv2.imshow("Example", imagen)
-
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
+with MPImageLandmarker(model_path='hand_landmarker.task') as landmarker:
+    inferences = landmarker.infer(image)
+    if inferences:
+        for inference in inferences:
+            print(f"Detected hand with {len(inference.landmarks)} landmarks")
+            # Access landmarks: inference.landmarks
+            # Access world landmarks: inference.world_landmarks
+            # Access metadata: inference.metadata (handedness info)
 ```
 
 ### Video
 
 ```python
-from landmarkers.hands import SyncMediapipeHandLandmarker, HandLandmarkerResult, MediapipeHandLandmarkerRunningMode as RunningMode
+from landmarkers.mp.hands import MPVideoLandmarker
+import cv2
 import time
 
 def timestamper_ms(current_time: float):
@@ -84,18 +85,19 @@ def timestamper_ms(current_time: float):
 
 cap = cv2.VideoCapture(0)
 
-
-with SyncMediapipeHandLandmarker(model_path='hand_landmarker.task',
-                                 running_mode=RunningMode.VIDEO) as hand_landmarker:
+with MPVideoLandmarker(model_path='hand_landmarker.task') as landmarker:
 	get_timestamp_ms = timestamper_ms(time.time())
 	while cap.isOpened():
 		ret, frame = cap.read()
 		if not ret:
+			break
 
-		result = hand_landmarker.detect(frame,get_timestamp_ms())
-		frame = result.draw(frame)
+		inferences = landmarker.infer(frame, get_timestamp_ms())
+		if inferences:
+			for inference in inferences:
+				print(f"Detected hand at {get_timestamp_ms()}ms")
 
-		cv2.imshow('Example', frame)
+		cv2.imshow('Video', frame)
 		if cv2.waitKey(10) & 0xFF == ord('q'):
 			break
 
@@ -105,10 +107,10 @@ cv2.destroyAllWindows()
 
 ## Usage – Asynchronous Mode
 
-### Raw Stream
+### Live Stream
 
 ```python
-from landmarkers.hands import RawStreamMediapipeLandmarker
+from landmarkers.mp.hands import MPLiveStreamLandmarker
 import cv2
 import time
 
@@ -123,18 +125,19 @@ def timestamper_ms(current_time: float):
 		return timestamp
 	return get_timestamp_ms
 
-def my_callback(raw_result, image, timestamp_ms):
-	print(f"Detected {len(raw_result.hand_landmarks)} hands at {timestamp_ms}ms")
+def my_callback(inferences, image, timestamp_ms):
+	print(f"Detected {len(inferences)} hands at {timestamp_ms}ms")
+	# Process inferences here
 
 cap = cv2.VideoCapture(0)
 
-with RawStreamMediapipeLandmarker(model_path='hand_landmarker.task', callback=my_callback) as detector:
+with MPLiveStreamLandmarker(model_path='hand_landmarker.task', callback=my_callback) as detector:
 	get_timestamp_ms = timestamper_ms(time.time())
 	while cap.isOpened():
 		ret, frame = cap.read()
 		if not ret:
 			break
-		detector.send(frame, get_timestamp_ms())
+		detector.infer(frame, get_timestamp_ms())
 		if cv2.waitKey(10) & 0xFF == ord('q'):
 			break
 
@@ -142,76 +145,109 @@ cap.release()
 cv2.destroyAllWindows()
 ```
 
-### Wrapped Stream
+## Visualization
+
+The library includes a flexible visualization system for rendering landmark data on images.
 
 ```python
-from landmarkers.hands import WrappedStreamMediapipeLandmarker
+from landmarkers.visualization import Viewer
+from landmarkers.visualization.layers import PointsLayer, CentroidLayer, BBoxLayer
+from landmarkers.visualization.visualizers import LandmarksVisualizer
+from landmarkers.landmarks import Landmarks
 import cv2
-import time
 
-def timestamper_ms(current_time: float):
-	last_timestamp = int(current_time * 1000)
-	def get_timestamp_ms():
-		nonlocal last_timestamp
-		timestamp = int(time.time() * 1000)
-		if timestamp <= last_timestamp:
-			timestamp = last_timestamp + 1
-		last_timestamp = timestamp
-		return timestamp
-	return get_timestamp_ms
+# Assuming you have inferences from a landmarker
+inferences = landmarker.infer(image)
 
-def my_callback(result, image, timestamp_ms):
-	print(f"Detected {result.hands_count} hands at {timestamp_ms}ms")
-	image_with_landmarks = result.draw(image)
-	cv2.imshow('Async Example', image_with_landmarks)
+if inferences:
+	# Create a viewer with multiple layers
+	viewer = (Viewer.builder()
+	          .add_layer(PointsLayer(color=(0, 255, 0), radius=3))
+	          .add_layer(CentroidLayer(color=(255, 0, 0), radius=5))
+	          .add_layer(BBoxLayer(color=(0, 0, 255), thickness=2))
+	          .build())
 
-cap = cv2.VideoCapture(0)
+	# Create landmarks from inference
+	landmarks = Landmarks(inferences[0].landmarks)
+	visualizer = LandmarksVisualizer(landmarks)
 
-with WrappedStreamMediapipeHandLandmarker(model_path='hand_landmarker.task', callback=my_callback) as detector:
-	get_timestamp_ms = timestamper_ms(time.time())
-	while cap.isOpened():
-		ret, frame = cap.read()
-		if not ret:
-			break
-		detector.send(frame, get_timestamp_ms())
-		if cv2.waitKey(10) & 0xFF == ord('q'):
-			break
+	# Render on image
+	rendered_image = viewer.render(visualizer, background=image)
+	cv2.imshow('Landmarks', rendered_image)
+	cv2.waitKey(0)
+	cv2.destroyAllWindows()
+```
 
-cap.release()
-cv2.destroyAllWindows()
+	# Render on image
+	rendered_image = viewer.render(visualizer, background=image)
+	cv2.imshow('Landmarks', rendered_image)
+	cv2.waitKey(0)
+	cv2.destroyAllWindows()
 ```
 
 ## API
 
 ### Main Classes and Methods
 
+#### Base Landmarkers
+
 | Class | Method | Description |
 |-------|--------|------------|
-| `SyncMediapipeHandLandmarker` | `detect(frame, timestamp_ms=None)` | Detects hands in a frame and returns a `HandLandmarkerResult`. |
-|  | `detect_raw(frame, timestamp_ms=None)` | Returns the raw MediaPipe result (`HandLandmarkerResultProtocol`) without wrapping. |
-|  | `close()` | Releases resources. |
-| `RawStreamMediapipeLandmarker` | `send(frame, timestamp_ms)` | Sends a frame for asynchronous processing. |
-|  | `close()` | Releases resources. |
-| `WrappedStreamMediapipeLandmarker` | `send(frame, timestamp_ms)` | Sends a frame for asynchronous processing. |
-|  | `close()` | Releases resources. |
-| `HandLandmarkerResult` | `hands_count` | Number of detected hands. |
-|  | `time_stamp_ms` | Timestamp of the result in milliseconds. |
-|  | `draw(image, hand_index=None)` | Draws hand landmarks on the provided image. |
-|  | `landmarks_array(hand_index=None, fill_value=None)` | Returns landmarks as a numpy array. |
-|  | `world_landmarks_array(hand_index=None, fill_value=None)` | Returns world landmarks as a numpy array. |
-|  | `landmarks_array_relative_to_wrist(hand_index=None, fill_value=None)` | Returns landmarks relative to the wrist. |
-|  | `handedness(hand_index=None)` | Returns handedness information as a numpy array. |
-|  | `data` | Raw MediaPipe result data. |
+| `BaseLandmarker` | `close()` | Releases resources. |
+| `ImageLandmarker` | `infer(image)` | Detects landmarks in a single image. |
+| `VideoLandmarker` | `infer(image, timestamp_ms)` | Detects landmarks in a video frame. |
+| `LiveStreamLandmarker` | `infer(image, timestamp_ms)` | Sends frame for asynchronous processing. |
+
+#### MediaPipe Hands Implementation
+
+| Class | Description |
+|-------|-------------|
+| `MPImageLandmarker` | MediaPipe hand landmarker for images. |
+| `MPVideoLandmarker` | MediaPipe hand landmarker for video. |
+| `MPLiveStreamLandmarker` | MediaPipe hand landmarker for live streaming. |
+
+#### Inference and Data Structures
+
+| Class | Description |
+|-------|-------------|
+| `Inference[M]` | Contains landmarks, world landmarks, and metadata. |
+| `Landmarks` | Represents a set of 2D/3D landmark points. |
+| `LandmarksSequence` | Sequence of landmarks over time. |
+| `InferenceSequence[M]` | Sequence of inferences. |
+
+#### Visualization
+
+| Class | Description |
+|-------|-------------|
+| `Viewer[T]` | Renders data using layers on an image. |
+| `ViewerBuilder[T]` | Builder for creating viewers with layers. |
+| `Layer[T]` | Base class for visualization layers. |
+| `PointsLayer` | Draws landmark points. |
+| `CentroidLayer` | Draws centroid of landmarks. |
+| `BBoxLayer` | Draws bounding box. |
+| `SequenceLayer` | Draws sequences with time-based effects. |
+
+#### Protocols
+
+| Protocol | Methods |
+|----------|---------|
+| `HasPoints` | `points()` - Returns list of points. |
+| `HasCentroid` | `centroid()` - Returns centroid. |
+| `HasBBox` | `bbox()` - Returns bounding box. |
+| `HasSequence` | `sequence()` - Returns sequence data. |
 
 
 ## Best Practices
 
-- Always **close the detector** after use:
+- Always **close the landmarker** after use or use it as a context manager:
 
 ```python
-detector.close()
+with MPImageLandmarker(model_path='model.task') as landmarker:
+	inferences = landmarker.infer(image)
+# Resources are automatically released
 ```
 
-- Provide **consistent timestamps** for video/streaming to maintain tracking.  
-- `HandLandmarkerResult` provides easy access to **landmark coordinates** and **handedness**, and allows drawing landmarks directly on images.  
-- If you don’t need helpers or drawing, **use the raw result protocol** to reduce overhead and work directly with the model data.
+- Provide **consistent timestamps** for video/streaming to maintain tracking.
+- Use the **visualization system** for consistent rendering of landmark data.
+- Leverage **sequences** for temporal analysis of landmark data.
+- The modular design allows for **easy extension** to new landmark types by implementing the base classes.
