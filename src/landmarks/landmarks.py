@@ -1,6 +1,8 @@
 from copy import deepcopy
-from typing import Optional, TypeAlias, Union
+from typing import Optional, Self, TypeAlias, Union
 import numpy as np
+
+from ..base_sequence import BaseSequence
 
 from ..types import LandmarkArray, LandmarkSequenceArray, NormalizedCoordinate3D
 
@@ -94,101 +96,67 @@ class Landmarks:
 		return Landmarks(self._landmarks[indices])
 
 
-class LandmarksSequence:
-	def __init__(self):
-		self._landmarks: list[Landmarks] = []
-		self._time_stamps_ms: list[int] = []
+class LandmarksSequence(BaseSequence[Landmarks]):
+    def __init__(self, fixed_buffer_length: Optional[int] = None):
+        super().__init__(fixed_buffer_length)
 
-	@classmethod
-	def from_lists(
-		cls,
-		inferences: list[Landmarks],
-		time_stamps_ms: list[int],
-	) -> "LandmarksSequence":
-		if len(inferences) != len(time_stamps_ms):
-			raise ValueError("Lengths must match")
+    # -------- Acceso a datos --------
+    @property
+    def landmarks(self) -> list[Landmarks]:
+        return deepcopy(list(self._elements))
 
-		obj = cls()
-		obj._landmarks = inferences
-		obj._time_stamps_ms = time_stamps_ms
-		return obj
+    @property
+    def array(self) -> LandmarkSequenceArray:
+        return np.stack([lm.array for lm in self._elements], axis=0)
 
-	@property
-	def sequence_length(self) -> int:
-		return len(self._time_stamps_ms)
+    @property
+    def n_frames(self) -> int:
+        return len(self._elements)
 
-	@property
-	def landmarks(self) -> list[Landmarks]:
-		return deepcopy(self._landmarks)
+    @property
+    def n_points(self) -> int:
+        return self._elements[0].n_points if self.n_frames > 0 else 0
 
-	@property
-	def time_stamps_ms(self):
-		return self._time_stamps_ms.copy()
+    # -------- Transformaciones (usando map del padre) --------
+    def centered(self, reference: Optional[Reference] = None) -> Self:
+        return self.map(lambda lm: lm.centered(reference))
 
-	@property
-	def array(self) -> LandmarkSequenceArray:
-		return np.stack([lm.array for lm in self._landmarks], axis=0)
+    def normalized(self, reference: Optional[Reference] = None) -> Self:
+        return self.map(lambda lm: lm.normalized(reference))
 
-	@property
-	def n_frames(self) -> int:
-		return len(self._landmarks)
+    def scaled(self, factor: float) -> Self:
+        return self.map(lambda lm: lm.scaled(factor))
 
-	@property
-	def n_points(self) -> int:
-		return self._landmarks[0].n_points if self.n_frames > 0 else 0
+    def rotated_2d(self, angle_rad: float) -> Self:
+        return self.map(lambda lm: lm.rotated_2d(angle_rad))
 
-	def append(self, landmarks: Landmarks, time_stamp_ms: int) -> None:
-		self._landmarks.append(landmarks)
-		self._time_stamps_ms.append(time_stamp_ms)
+    def subset(self, indices: list[int]) -> Self:
+        return self.map(lambda lm: lm.subset(indices))
 
-	def centered(self, reference: Optional[Reference] = None) -> "LandmarksSequence":
-		return LandmarksSequence.from_lists(
-			[lm.centered(reference) for lm in self._landmarks], self._time_stamps_ms
-		)
+    # -------- Operaciones que no transforman la secuencia --------
+    def centroid(self) -> list[NormalizedCoordinate3D]:
+        return [lm.centroid() for lm in self._elements]
 
-	def normalized(self, reference: Optional[Reference] = None) -> "LandmarksSequence":
-		return LandmarksSequence.from_lists(
-			[lm.normalized(reference) for lm in self._landmarks], self._time_stamps_ms
-		)
+    def pairwise_distances(self) -> np.ndarray:
+        return np.stack([lm.pairwise_distances() for lm in self._elements], axis=0)
 
-	def scaled(self, factor: float) -> "LandmarksSequence":
-		return LandmarksSequence.from_lists(
-			[lm.scaled(factor) for lm in self._landmarks], self._time_stamps_ms
-		)
+    def variance(self) -> np.ndarray:
+        return self.array.var(axis=0)
 
-	def rotated_2d(self, angle_rad: float) -> "LandmarksSequence":
-		return LandmarksSequence.from_lists(
-			[lm.rotated_2d(angle_rad) for lm in self._landmarks], self._time_stamps_ms
-		)
+    def distance(self, a: int, b: int) -> np.ndarray:
+        return np.array([lm.distance(a, b) for lm in self._elements])
 
-	def centroid(self) -> list[NormalizedCoordinate3D]:
-		return [lm.centroid() for lm in self._landmarks]
+    def bounding_box(self) -> np.ndarray:
+        return np.stack([lm.bounding_box() for lm in self._elements], axis=0)
 
-	def pairwise_distances(self) -> np.ndarray:
-		return np.stack([lm.pairwise_distances() for lm in self._landmarks], axis=0)
+    def bounding_box_2d(self) -> np.ndarray:
+        return np.stack([lm.bounding_box_2d() for lm in self._elements], axis=0)
 
-	def subset(self, indices: list[int]) -> "LandmarksSequence":
-		return LandmarksSequence.from_lists(
-			[lm.subset(indices) for lm in self._landmarks], self._time_stamps_ms
-		)
+    def extent(self) -> np.ndarray:
+        return np.stack([lm.extent() for lm in self._elements], axis=0)
 
-	def variance(self) -> np.ndarray:
-		return self.array.var(axis=0)
+    def distance_to(self, point: np.ndarray) -> np.ndarray:
+        return np.stack([lm.distance_to(point) for lm in self._elements], axis=0)
 
-	def distance(self, a: int, b: int) -> np.ndarray:
-		return np.array([lm.distance(a, b) for lm in self._landmarks])
-
-	def bounding_box(self) -> np.ndarray:
-		return np.stack([lm.bounding_box() for lm in self._landmarks], axis=0)
-
-	def bounding_box_2d(self) -> np.ndarray:
-		return np.stack([lm.bounding_box_2d() for lm in self._landmarks], axis=0)
-
-	def extent(self) -> np.ndarray:
-		return np.stack([lm.extent() for lm in self._landmarks], axis=0)
-
-	def distance_to(self, point: np.ndarray) -> np.ndarray:
-		return np.stack([lm.distance_to(point) for lm in self._landmarks], axis=0)
-
-	def angle(self, a: int, b: int, c: int) -> np.ndarray:
-		return np.stack([lm.angle(a, b, c) for lm in self._landmarks], axis=0)
+    def angle(self, a: int, b: int, c: int) -> np.ndarray:
+        return np.stack([lm.angle(a, b, c) for lm in self._elements], axis=0)

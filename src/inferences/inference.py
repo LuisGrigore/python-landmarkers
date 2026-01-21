@@ -1,6 +1,8 @@
 from collections import deque
-from typing import Generic, Iterable, Optional, TypeVar
+from typing import Generic, Iterable, Optional, Self, TypeVar
 import numpy as np
+
+from ..base_sequence import BaseSequence
 from ..landmarks.landmarks import LandmarksSequence, Landmarks
 
 
@@ -58,61 +60,32 @@ class Inference(Generic[M]):
 		return self._metadata
 
 
-class InferenceSequence(Generic[M]):
-	def __init__(self, fixed_buffer_length: Optional[int] = None):
-		if fixed_buffer_length is not None and fixed_buffer_length < 1:
-			raise ValueError("fixed_buffer_length must be > 0")
+class InferenceSequence(BaseSequence[Inference[M]], Generic[M]):
+    def __init__(self, fixed_buffer_length: Optional[int] = None):
+        if fixed_buffer_length is not None and fixed_buffer_length < 1:
+            raise ValueError("fixed_buffer_length must be > 0")
+        super().__init__(fixed_buffer_length)
+        self._metadata: Optional[M] = None
 
-		self._fixed_buffer_length = fixed_buffer_length
-		self._inferences = deque(maxlen=fixed_buffer_length)
-		self._time_stamps_ms = deque(maxlen=fixed_buffer_length)
-		self._metadata: Optional[M] = None
+    def append(self, element: Inference[M], time_stamp_ms: int) -> None:
+        if self._metadata is None:
+            self._metadata = element.metadata
+        super().append(element, time_stamp_ms)
 
-	@classmethod
-	def from_lists(
-		cls,
-		inferences: list[Inference[M]],
-		time_stamps_ms: list[int],
-		fixed_buffer_length: Optional[int] = None,
-	) -> "InferenceSequence[M]":
-		if len(inferences) != len(time_stamps_ms):
-			raise ValueError("Lengths must match")
+    @property
+    def metadata(self) -> Optional[M]:
+        return self._metadata
 
-		obj = cls(fixed_buffer_length)
-		for inf, ts in zip(inferences, time_stamps_ms):
-			obj.append(inf, ts)
-
-		return obj
-
-	def append(self, hand: Inference[M], time_stamp_ms: int) -> None:
-		if self._metadata is None:
-			self._metadata = hand.metadata
-
-		self._inferences.append(hand)
-		self._time_stamps_ms.append(time_stamp_ms)
-
-	@property
-	def sequence_length(self) -> int:
-		return len(self._time_stamps_ms)
-
-	@property
-	def time_stamps_ms(self) -> list[int]:
-		return list(self._time_stamps_ms)
-
-	@property
-	def landmarks_sequence(self) -> LandmarksSequence:
-		return LandmarksSequence.from_lists(
-			[inf.landmarks for inf in self._inferences],
-			list(self._time_stamps_ms),
-		)
-
-	@property
-	def world_landmarks_sequence(self) -> LandmarksSequence:
-		return LandmarksSequence.from_lists(
-			[inf.world_landmarks for inf in self._inferences],
-			list(self._time_stamps_ms),
-		)
-
-	@property
-	def metadata(self) -> Optional[M]:
-		return self._metadata
+    @property
+    def landmarks_sequence(self) -> LandmarksSequence:
+        return LandmarksSequence.from_list(
+            [inf.landmarks for inf in self._elements],
+            self.time_stamps_ms,
+        )
+        
+    @property
+    def world_landmarks_sequence(self) -> LandmarksSequence:
+        return LandmarksSequence.from_list(
+            [inf.world_landmarks for inf in self._elements],
+            self.time_stamps_ms,
+        )

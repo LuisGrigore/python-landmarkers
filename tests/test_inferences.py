@@ -101,13 +101,13 @@ class TestInferenceSequence:
         return [100, 200]
 
     def test_from_lists_valid(self, sample_inferences, sample_timestamps):
-        seq = InferenceSequence.from_lists(sample_inferences, sample_timestamps)
+        seq = InferenceSequence.from_list(sample_inferences, sample_timestamps)
         assert len(seq._inferences) == 2
         assert seq._time_stamps_ms == [100, 200]
 
     def test_from_lists_mismatched_lengths(self, sample_inferences):
         with pytest.raises(ValueError, match="Lengths must match"):
-            InferenceSequence.from_lists(sample_inferences, [100])
+            InferenceSequence.from_list(sample_inferences, [100])
 
     def test_append(self):
         seq = InferenceSequence()
@@ -135,12 +135,12 @@ class TestInferenceSequence:
         assert seq._time_stamps_ms[0] != 999
 
     def test_landmarks_sequence_property(self, sample_inferences, sample_timestamps):
-        seq = InferenceSequence.from_lists(sample_inferences, sample_timestamps)
+        seq = InferenceSequence.from_list(sample_inferences, sample_timestamps)
         lm_seq = seq.landmarks_sequence
         assert lm_seq.n_frames == 2
         assert lm_seq.n_points == 2
 
     def test_world_landmarks_sequence_property(self, sample_inferences, sample_timestamps):
-        seq = InferenceSequence.from_lists(sample_inferences, sample_timestamps)
+        seq = InferenceSequence.from_list(sample_inferences, sample_timestamps)
         wlm_seq = seq.world_landmarks_sequence
         assert wlm_seq.n_frames == 2
