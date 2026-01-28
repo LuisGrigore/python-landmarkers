@@ -139,7 +139,7 @@ class LandmarksSequence(BaseSequence[Landmarks]):
 		else:
 			ts_new = np.linspace(ts[0], ts[-1], n_frames)
 
-		arr_new = np.zeros((len(ts_new), n_points, n_dims))
+		arr_new = np.zeros((len(ts_new), n_points, n_dims), dtype=np.float64)
 		for p in range(n_points):
 			for d in range(n_dims):
 				arr_new[:, p, d] = np.interp(ts_new, ts, arr[:, p, d])

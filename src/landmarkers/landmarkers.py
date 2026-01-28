@@ -61,6 +61,8 @@ class BaseLandmarker(AbstractContextManager, ABC):
                                         None
         """
         self.close()
+        
+    
 
 
 class ImageLandmarker(BaseLandmarker):
